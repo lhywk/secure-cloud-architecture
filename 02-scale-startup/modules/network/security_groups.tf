@@ -47,7 +47,7 @@ resource "aws_security_group" "ec2" {
   }
 
   egress {
-    description = "All outbound"
+    description = "All outbound(SSM, S3, etc.)"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

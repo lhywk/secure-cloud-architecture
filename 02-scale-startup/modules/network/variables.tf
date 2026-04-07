@@ -45,13 +45,14 @@ variable "db_port" {
 }
 
 # ALB
+variable "health_check_path" {
+  description = "Health check path for the target group"
+  type        = string
+  default     = "/health"
+}
+
 variable "alb_certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS listener"
   type        = string
 }
 
-variable "origin_secret_header_value" {
-  description = "X-Origin-Secret header value shared between CloudFront and ALB"
-  type        = string
-  sensitive   = true
-}
