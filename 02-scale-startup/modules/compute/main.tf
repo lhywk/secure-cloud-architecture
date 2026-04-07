@@ -1,5 +1,5 @@
 locals {
-  instance_type           = "t2.micro"
+  instance_type           = "t3.small"
   database_instance_class = "db.t3.micro"
   ec2_key_pair_name       = "key_pair"
 }
