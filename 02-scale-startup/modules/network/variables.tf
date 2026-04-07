@@ -31,6 +31,19 @@ variable "private_subnet_cidr" {
   type        = string
 }
 
+# Security Groups
+variable "app_port" {
+  description = "Port the app server listens on"
+  type        = number
+  default     = 8080
+}
+
+variable "db_port" {
+  description = "Database port (e.g. 3306 for MySQL, 5432 for PostgreSQL)"
+  type        = number
+  default     = 3306
+}
+
 # ALB
 variable "alb_certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS listener"
