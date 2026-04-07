@@ -2,7 +2,6 @@ resource "aws_launch_template" "app_server" {
   name_prefix   = "${var.environment}-app-server-"
   instance_type = local.instance_type
   image_id      = data.aws_ami.amazon_linux.id
-  key_name      = local.ec2_key_pair_name
 
   vpc_security_group_ids = var.app_security_group_ids
 
@@ -38,6 +37,12 @@ resource "aws_autoscaling_group" "app_server" {
   tag {
     key                 = "Name"
     value               = "${var.environment}-app-server"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Project"
+    value               = var.tags["Project"]
     propagate_at_launch = true
   }
 

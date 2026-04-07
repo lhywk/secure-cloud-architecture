@@ -1,7 +1,6 @@
 locals {
   instance_type           = "t3.small"
-  database_instance_class = "db.t3.micro"
-  ec2_key_pair_name       = "key_pair"
+  database_instance_class = "db.t3.small"
 }
 
 data "aws_ami" "amazon_linux" {
