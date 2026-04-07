@@ -70,7 +70,7 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
-  # S3 Gateway Endpoint route is added via route_table_ids in endpoints.tf
+  # No routes needed; private subnet has no internet or S3 endpoint
 
   tags = merge(local.common_tags, {
     Name = "${var.project}-${var.environment}-rt-private"
