@@ -6,8 +6,16 @@ output "vpc_id" {
 
 # Subnets
 output "public_subnet_ids" {
-  description = "Public subnet IDs (EC2, ALB)"
-  value       = [aws_subnet.public.id]
+  description = "App tier public subnet IDs. public_b is intentionally excluded."
+  value       = [aws_subnet.public_a.id]
+}
+
+output "alb_subnet_ids" {
+  description = "Public subnet IDs used by the ALB (public_a and the empty public_b)"
+  value = [
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id,
+  ]
 }
 
 output "private_subnet_ids" {

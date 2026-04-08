@@ -18,21 +18,34 @@ resource "aws_vpc" "main" {
 }
 
 # Subnets
-resource "aws_subnet" "public" {
+resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidr
-  availability_zone       = var.availability_zone
+  cidr_block              = var.public_subnet_cidr_a
+  availability_zone       = var.availability_zone_a
   map_public_ip_on_launch = true
 
   tags = merge(local.common_tags, {
-    Name = "${var.project}-${var.environment}-public"
+    Name = "${var.project}-${var.environment}-public-a"
+  })
+}
+
+# public_b is intentionally left empty for the app tier.
+# It exists only because an internet-facing ALB needs subnets in two AZs.
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_cidr_b
+  availability_zone       = var.availability_zone_b
+  map_public_ip_on_launch = false
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project}-${var.environment}-public-b"
   })
 }
 
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr
-  availability_zone = var.availability_zone
+  availability_zone = var.availability_zone_a
 
   tags = merge(local.common_tags, {
     Name = "${var.project}-${var.environment}-private"
@@ -62,8 +75,13 @@ resource "aws_route_table" "public" {
   })
 }
 
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
 

@@ -16,13 +16,23 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
-variable "availability_zone" {
-  description = "Single AZ to deploy into"
+variable "availability_zone_a" {
+  description = "Primary AZ for the app and database tiers"
   type        = string
 }
 
-variable "public_subnet_cidr" {
-  description = "Public subnet CIDR block"
+variable "availability_zone_b" {
+  description = "Secondary AZ used only for the ALB's additional public subnet"
+  type        = string
+}
+
+variable "public_subnet_cidr_a" {
+  description = "CIDR block for public_a (app subnet)"
+  type        = string
+}
+
+variable "public_subnet_cidr_b" {
+  description = "CIDR block for public_b (kept empty except for the ALB)"
   type        = string
 }
 
@@ -55,4 +65,3 @@ variable "alb_certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS listener"
   type        = string
 }
-
