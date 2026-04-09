@@ -1,0 +1,46 @@
+# Common
+variable "project" {
+  description = "Project name"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment (dev / stg / prod)"
+  type        = string
+}
+
+# Domain / ACM
+variable "domain_name" {
+  description = "Domain name registered in Route53 (e.g., example.com)"
+  type        = string
+}
+
+variable "subdomain" {
+  description = "Subdomain to be associated with CloudFront (e.g., www)"
+  type        = string
+  default     = "www"
+}
+
+# S3
+variable "s3_frontend_bucket_name" {
+  description = "Name of the S3 bucket for static resources"
+  type        = string
+}
+
+# CloudFront
+variable "cloudfront_price_class" {
+  description = "CloudFront price class"
+  type        = string
+  default     = "PriceClass_200"
+}
+
+variable "alb_dns_name" {
+  description = "ALB DNS name (output from the network module)"
+  type        = string
+}
+
+variable "cloudfront_shared_secret" {
+  description = "Shared secret value for CloudFront to ALB custom header (injected from the security module)"
+  type        = string
+  sensitive   = true
+}
