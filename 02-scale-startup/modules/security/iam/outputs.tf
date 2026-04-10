@@ -1,6 +1,6 @@
 output "ec2_instance_profile_name" {
     description = "EC2 모듈에 전달할 Instance Profile 이름"
-    value = aws_iam_instance_profile.ec2.name
+    value = aws_iam_instance_profile.app.name
 }
 
 output "ec2_role_arn" {

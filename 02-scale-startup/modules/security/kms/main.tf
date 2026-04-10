@@ -72,7 +72,7 @@ resource "aws_kms_key" "secrets" {
             {
                 Sid = "Allow Secrets Manager Service"
                 Effect = "Allow"
-                Principla = {
+                Principal = {
                     Service = "secretsmanager.amazonaws.com"
                 }
                 Action = [

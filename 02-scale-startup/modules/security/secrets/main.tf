@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+  }
+}
+
 locals {
     name_prefix = "${var.project}-${var.environment}"
 }
