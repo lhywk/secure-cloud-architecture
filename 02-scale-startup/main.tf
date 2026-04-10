@@ -58,14 +58,21 @@ module "network" {
   project     = var.project
   environment = var.environment
 
-  vpc_cidr             = var.vpc_cidr
-  availability_zone_a  = var.availability_zones[0]
-  availability_zone_b  = var.availability_zones[1]
-  public_subnet_cidr_a = var.public_subnet_cidrs[0]
-  public_subnet_cidr_b = var.public_subnet_cidrs[1]
-  private_subnet_cidr  = var.private_subnet_cidrs[0]
+  vpc_cidr              = var.vpc_cidr
+  availability_zone_a   = var.availability_zones[0]
+  availability_zone_b   = var.availability_zones[1]
+  public_subnet_cidr_a  = var.public_subnet_cidrs[0]
+  public_subnet_cidr_b  = var.public_subnet_cidrs[1]
+  private_subnet_cidr   = var.private_subnet_cidrs[0]
+  private_subnet_cidr_b = var.private_subnet_cidrs[1]
 
-  alb_certificate_arn = module.dns.alb_certificate_arn
+  alb_certificate_arn         = module.dns.alb_certificate_arn
+  alb_access_logs_bucket_name = aws_s3_bucket.logs.id
+
+  depends_on = [
+    aws_secretsmanager_secret_version.cloudfront_origin,
+    aws_s3_bucket_policy.logs,
+  ]
 }
 
 # ──────────────────────────────────────────
@@ -153,11 +160,165 @@ resource "aws_s3_bucket_public_access_block" "app" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_versioning" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# ──────────────────────────────────────────
+# Audit / Log S3 버킷
+# 의존성 없음
+# ALB Access Log와 CloudTrail을 함께 저장하는 감사 로그 버킷
+# ──────────────────────────────────────────
+resource "aws_s3_bucket" "logs" {
+  bucket              = var.s3_log_bucket_name
+  object_lock_enabled = true
+
+  tags = {
+    Name        = var.s3_log_bucket_name
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_versioning" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    default_retention {
+      mode = "GOVERNANCE"
+      days = 90
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.logs]
+}
+
+resource "aws_s3_bucket_policy" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  depends_on = [aws_s3_bucket_public_access_block.logs]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudTrailWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.logs.arn}/cloudtrail/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "AllowCloudTrailACLCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = aws_s3_bucket.logs.arn
+      },
+      {
+        Sid    = "AllowALBWrite"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::600734575887:root"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.logs.arn}/alb/*"
+      },
+      {
+        Sid       = "DenyDelete"
+        Effect    = "Deny"
+        Principal = "*"
+        Action = [
+          "s3:DeleteObject",
+          "s3:DeleteBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.logs.arn,
+          "${aws_s3_bucket.logs.arn}/*"
+        ]
+      },
+      {
+        Sid       = "DenyNonHttps"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          aws_s3_bucket.logs.arn,
+          "${aws_s3_bucket.logs.arn}/*"
+        ]
+        Condition = {
+          Bool = {
+            "aws:SecureTransport" = "false"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    id     = "log-lifecycle"
+    status = "Enabled"
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    expiration {
+      days = 365
+    }
+  }
+}
+
 # ──────────────────────────────────────────
 # IAM
-# 의존성: kms, secrets, app S3 버킷
-# 참고: s3_log_bucket_arn은 버킷 이름으로 직접 계산
-#       (observability → compute → iam 순환 의존성 방지)
+# 의존성: kms, secrets, app/log S3 버킷
 # ──────────────────────────────────────────
 module "iam" {
   source = "./modules/security/iam"
@@ -166,9 +327,9 @@ module "iam" {
   environment = var.environment
 
   users             = var.iam_users
-  rds_key_arn       = module.kms.rds_key_arn
+  secrets_key_arn   = module.kms.secrets_key_arn
   s3_app_bucket_arn = aws_s3_bucket.app.arn
-  s3_log_bucket_arn = "arn:aws:s3:::${var.s3_log_bucket_name}"
+  s3_log_bucket_arn = aws_s3_bucket.logs.arn
   secrets_arn       = module.secrets.secret_arn
 }
 
@@ -209,14 +370,17 @@ module "database" {
   private_subnet_ids    = module.network.private_subnet_ids
   db_security_group_ids = module.network.db_security_group_ids
 
-  kms_key_id   = module.kms.rds_key_id
-  db_secret_id = module.secrets.secret_id
+  db_instance_class = var.db_instance_class
+  kms_key_id        = module.kms.rds_key_arn
+  db_secret_id      = module.secrets.secret_id
 
   tags = {
     Project     = var.project
     Environment = var.environment
     ManagedBy   = "terraform"
   }
+
+  depends_on = [module.secrets]
 }
 
 # ──────────────────────────────────────────
@@ -230,12 +394,15 @@ module "observability" {
   project     = var.project
   environment = var.environment
 
-  s3_log_bucket_name            = var.s3_log_bucket_name
+  s3_log_bucket_name            = aws_s3_bucket.logs.id
+  s3_log_bucket_arn             = aws_s3_bucket.logs.arn
   cloudwatch_log_retention_days = var.cloudwatch_log_retention_days
   alarm_email                   = var.alarm_email
 
   alb_arn  = module.network.alb_arn
   asg_name = module.compute.asg_name
+
+  depends_on = [aws_s3_bucket_policy.logs]
 }
 
 # ──────────────────────────────────────────

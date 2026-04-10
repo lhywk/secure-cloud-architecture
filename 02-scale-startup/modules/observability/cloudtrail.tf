@@ -55,7 +55,7 @@ resource "aws_iam_role_policy" "cloudtrail_cloudwatch" {
 
 resource "aws_cloudtrail" "main" {
   name                          = "${var.project}-${var.environment}-trail"
-  s3_bucket_name                = aws_s3_bucket.logs.id
+  s3_bucket_name                = var.s3_log_bucket_name
   s3_key_prefix                 = "cloudtrail"
   include_global_service_events = true  # Include global services like IAM
   is_multi_region_trail         = false # Single region (small-scale)
@@ -71,10 +71,7 @@ resource "aws_cloudtrail" "main" {
     include_management_events = true
   }
 
-  depends_on = [
-    aws_s3_bucket_policy.logs,
-    aws_cloudwatch_log_group.cloudtrail
-  ]
+  depends_on = [aws_cloudwatch_log_group.cloudtrail]
 
   tags = merge(local.common_tags, {
     Name = "${var.project}-${var.environment}-trail"
