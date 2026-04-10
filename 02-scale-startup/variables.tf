@@ -17,17 +17,12 @@ variable "region" {
   default     = "ap-northeast-2"
 }
 
-variable "aws_account_id" {
-  description = "AWS 계정 ID (KMS 키 정책에 사용)"
-  type        = string
-}
-
 # ──────────────────────────────────────────
 # IAM User
 # ──────────────────────────────────────────
 variable "iam_users" {
   description = "IAM 유저 목록"
-  type = set(string)
+  type        = set(string)
 }
 
 
@@ -137,7 +132,7 @@ variable "domain_name" {
 }
 
 variable "subdomain" {
-  description = "CloudFront에 연결할 서브도메인 (예: www)"
+  description = "CloudFront에 연결할 서브도메인"
   type        = string
   default     = "www"
 }
@@ -161,15 +156,6 @@ variable "s3_app_bucket_name" {
 variable "s3_log_bucket_name" {
   description = "CloudTrail 로그 저장용 S3 버킷 이름"
   type        = string
-}
-
-# ──────────────────────────────────────────
-# KMS
-# ──────────────────────────────────────────
-variable "kms_deletion_window" {
-  description = "KMS 키 삭제 대기 기간 (일)"
-  type        = number
-  default     = 7
 }
 
 # ──────────────────────────────────────────
