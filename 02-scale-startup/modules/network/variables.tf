@@ -41,11 +41,16 @@ variable "private_subnet_cidr" {
   type        = string
 }
 
+variable "private_subnet_cidr_b" {
+  description = "Secondary private subnet CIDR block for RDS AZ coverage"
+  type        = string
+}
+
 # Security Groups
 variable "app_port" {
   description = "Port the app server listens on"
   type        = number
-  default     = 8080
+  default     = 80
 }
 
 variable "db_port" {
@@ -63,5 +68,10 @@ variable "health_check_path" {
 
 variable "alb_certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS listener"
+  type        = string
+}
+
+variable "alb_access_logs_bucket_name" {
+  description = "Shared audit/log bucket name used for ALB access logs"
   type        = string
 }

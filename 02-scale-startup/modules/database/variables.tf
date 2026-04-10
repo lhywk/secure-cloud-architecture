@@ -18,8 +18,13 @@ variable "db_security_group_ids" {
   type        = list(string)
 }
 
+variable "db_instance_class" {
+  description = "RDS 인스턴스 클래스"
+  type        = string
+}
+
 variable "kms_key_id" {
-  description = "RDS 스토리지 암호화에 사용할 KMS 키 ID (security 모듈 output)"
+  description = "RDS 스토리지 암호화에 사용할 KMS 키 ARN (security 모듈 output)"
   type        = string
 }
 
@@ -32,7 +37,7 @@ variable "tags" {
   description = "모든 리소스에 공통으로 적용할 태그"
   type        = map(string)
   default = {
-    Project     = "my-project"
-    ManagedBy   = "terraform"
+    Project   = "my-project"
+    ManagedBy = "terraform"
   }
 }
