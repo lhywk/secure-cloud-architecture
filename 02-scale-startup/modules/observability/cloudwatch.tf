@@ -108,11 +108,25 @@ resource "aws_cloudwatch_metric_alarm" "unauthorized_api" {
   tags = local.common_tags
 }
 
-# Detect IAM policy/user/role changes
-resource "aws_cloudwatch_log_metric_filter" "iam_change" {
-  name           = "${var.project}-${var.environment}-iam-change"
+# Detect IAM user/role/credential changes
+resource "aws_cloudwatch_log_metric_filter" "iam_change_identity" {
+  name           = "${var.project}-${var.environment}-iam-change-identity"
   log_group_name = aws_cloudwatch_log_group.cloudtrail.name
-  pattern        = "{ ($.eventName = CreateUser) || ($.eventName = DeleteUser) || ($.eventName = CreateRole) || ($.eventName = DeleteRole) || ($.eventName = AttachUserPolicy) || ($.eventName = DetachUserPolicy) || ($.eventName = AttachRolePolicy) || ($.eventName = DetachRolePolicy) || ($.eventName = PutUserPolicy) || ($.eventName = PutRolePolicy) || ($.eventName = DeleteUserPolicy) || ($.eventName = DeleteRolePolicy) || ($.eventName = AttachGroupPolicy) || ($.eventName = DetachGroupPolicy) || ($.eventName = PutGroupPolicy) || ($.eventName = DeleteGroupPolicy) || ($.eventName = UpdateAssumeRolePolicy) || ($.eventName = CreatePolicy) || ($.eventName = DeletePolicy) || ($.eventName = CreatePolicyVersion) || ($.eventName = DeletePolicyVersion) || ($.eventName = SetDefaultPolicyVersion) || ($.eventName = PutRolePermissionsBoundary) || ($.eventName = DeleteRolePermissionsBoundary) || ($.eventName = PutUserPermissionsBoundary) || ($.eventName = DeleteUserPermissionsBoundary) || ($.eventName = CreateAccessKey) || ($.eventName = UpdateAccessKey) }"
+  pattern        = "{ ($.eventName = CreateUser) || ($.eventName = DeleteUser) || ($.eventName = CreateRole) || ($.eventName = DeleteRole) || ($.eventName = CreateAccessKey) || ($.eventName = UpdateAccessKey) || ($.eventName = UpdateAssumeRolePolicy) || ($.eventName = PutRolePermissionsBoundary) || ($.eventName = DeleteRolePermissionsBoundary) || ($.eventName = PutUserPermissionsBoundary) || ($.eventName = DeleteUserPermissionsBoundary) }"
+
+  metric_transformation {
+    name          = "IAMChangeCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+# Detect IAM policy attachment/version changes
+resource "aws_cloudwatch_log_metric_filter" "iam_change_policy" {
+  name           = "${var.project}-${var.environment}-iam-change-policy"
+  log_group_name = aws_cloudwatch_log_group.cloudtrail.name
+  pattern        = "{ ($.eventName = AttachUserPolicy) || ($.eventName = DetachUserPolicy) || ($.eventName = AttachRolePolicy) || ($.eventName = DetachRolePolicy) || ($.eventName = AttachGroupPolicy) || ($.eventName = DetachGroupPolicy) || ($.eventName = PutUserPolicy) || ($.eventName = PutRolePolicy) || ($.eventName = PutGroupPolicy) || ($.eventName = DeleteUserPolicy) || ($.eventName = DeleteRolePolicy) || ($.eventName = DeleteGroupPolicy) || ($.eventName = CreatePolicy) || ($.eventName = DeletePolicy) || ($.eventName = CreatePolicyVersion) || ($.eventName = DeletePolicyVersion) || ($.eventName = SetDefaultPolicyVersion) }"
 
   metric_transformation {
     name          = "IAMChangeCount"
