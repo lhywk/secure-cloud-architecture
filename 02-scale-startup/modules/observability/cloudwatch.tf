@@ -19,9 +19,9 @@ resource "aws_cloudwatch_log_metric_filter" "root_login" {
   pattern        = "{ $.userIdentity.type = \"Root\" && $.eventType = \"AwsConsoleSignIn\" }"
 
   metric_transformation {
-    name      = "RootLoginCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "RootLoginCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -51,9 +51,9 @@ resource "aws_cloudwatch_log_metric_filter" "no_mfa_login" {
   pattern        = "{ $.eventName = \"ConsoleLogin\" && $.additionalEventData.MFAUsed != \"Yes\" && $.userIdentity.type != \"Root\" }"
 
   metric_transformation {
-    name      = "NoMFALoginCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "NoMFALoginCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -80,12 +80,12 @@ resource "aws_cloudwatch_metric_alarm" "no_mfa_login" {
 resource "aws_cloudwatch_log_metric_filter" "unauthorized_api" {
   name           = "${var.project}-${var.environment}-unauthorized-api"
   log_group_name = aws_cloudwatch_log_group.cloudtrail.name
-  pattern        = "{ ($.errorCode = \"AccessDenied\") || ($.errorCode = \"UnauthorizedOperation\") }"
+  pattern        = "{ ($.errorCode = \"AccessDenied\") || ($.errorCode = \"AccessDeniedException\") || ($.errorCode = \"UnauthorizedOperation\") }"
 
   metric_transformation {
-    name      = "UnauthorizedAPICount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "UnauthorizedAPICount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -112,12 +112,12 @@ resource "aws_cloudwatch_metric_alarm" "unauthorized_api" {
 resource "aws_cloudwatch_log_metric_filter" "iam_change" {
   name           = "${var.project}-${var.environment}-iam-change"
   log_group_name = aws_cloudwatch_log_group.cloudtrail.name
-  pattern        = "{ ($.eventName = CreateUser) || ($.eventName = DeleteUser) || ($.eventName = CreateRole) || ($.eventName = DeleteRole) || ($.eventName = AttachUserPolicy) || ($.eventName = DetachUserPolicy) || ($.eventName = AttachRolePolicy) || ($.eventName = DetachRolePolicy) || ($.eventName = PutUserPolicy) || ($.eventName = PutRolePolicy) || ($.eventName = DeleteUserPolicy) || ($.eventName = CreateAccessKey) || ($.eventName = UpdateAccessKey) }"
+  pattern        = "{ ($.eventName = CreateUser) || ($.eventName = DeleteUser) || ($.eventName = CreateRole) || ($.eventName = DeleteRole) || ($.eventName = AttachUserPolicy) || ($.eventName = DetachUserPolicy) || ($.eventName = AttachRolePolicy) || ($.eventName = DetachRolePolicy) || ($.eventName = PutUserPolicy) || ($.eventName = PutRolePolicy) || ($.eventName = DeleteUserPolicy) || ($.eventName = DeleteRolePolicy) || ($.eventName = AttachGroupPolicy) || ($.eventName = DetachGroupPolicy) || ($.eventName = PutGroupPolicy) || ($.eventName = DeleteGroupPolicy) || ($.eventName = UpdateAssumeRolePolicy) || ($.eventName = CreatePolicy) || ($.eventName = DeletePolicy) || ($.eventName = CreatePolicyVersion) || ($.eventName = DeletePolicyVersion) || ($.eventName = SetDefaultPolicyVersion) || ($.eventName = PutRolePermissionsBoundary) || ($.eventName = DeleteRolePermissionsBoundary) || ($.eventName = PutUserPermissionsBoundary) || ($.eventName = DeleteUserPermissionsBoundary) || ($.eventName = CreateAccessKey) || ($.eventName = UpdateAccessKey) }"
 
   metric_transformation {
-    name      = "IAMChangeCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "IAMChangeCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -147,9 +147,9 @@ resource "aws_cloudwatch_log_metric_filter" "sg_change" {
   pattern        = "{ ($.eventName = AuthorizeSecurityGroupIngress) || ($.eventName = AuthorizeSecurityGroupEgress) || ($.eventName = RevokeSecurityGroupIngress) || ($.eventName = RevokeSecurityGroupEgress) || ($.eventName = CreateSecurityGroup) || ($.eventName = DeleteSecurityGroup) }"
 
   metric_transformation {
-    name      = "SGChangeCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "SGChangeCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -179,9 +179,9 @@ resource "aws_cloudwatch_log_metric_filter" "s3_policy_change" {
   pattern        = "{ ($.eventName = PutBucketPolicy) || ($.eventName = DeleteBucketPolicy) || ($.eventName = PutBucketAcl) || ($.eventName = PutBucketPublicAccessBlock) }"
 
   metric_transformation {
-    name      = "S3PolicyChangeCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "S3PolicyChangeCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -211,9 +211,9 @@ resource "aws_cloudwatch_log_metric_filter" "secrets_change" {
   pattern        = "{ ($.eventSource = \"secretsmanager.amazonaws.com\") && (($.eventName = DeleteSecret) || ($.eventName = PutSecretValue) || ($.eventName = UpdateSecret) || ($.eventName = RotateSecret)) }"
 
   metric_transformation {
-    name      = "SecretsChangeCount"
-    namespace = "${var.project}/${var.environment}/Security"
-    value     = "1"
+    name          = "SecretsChangeCount"
+    namespace     = "${var.project}/${var.environment}/Security"
+    value         = "1"
     default_value = "0"
   }
 }
@@ -245,7 +245,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_4xx" {
   namespace           = "AWS/ApplicationELB"
   metric_name         = "HTTPCode_Target_4XX_Count"
   statistic           = "Sum"
-  period              = 300  
+  period              = 300
   evaluation_periods  = 2
   threshold           = 100
   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -284,6 +284,28 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   tags = local.common_tags
 }
 
+resource "aws_cloudwatch_metric_alarm" "alb_target_5xx" {
+  alarm_name          = "${var.project}-${var.environment}-alb-target-5xx"
+  alarm_description   = "5분 내 Target 5xx 20회 이상. 백엔드 애플리케이션 또는 인스턴스 장애 가능성. ALB Access Log와 애플리케이션 로그를 함께 확인."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 20
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = local.alb_arn_suffix
+  }
+
+  alarm_actions = [aws_sns_topic.alarm.arn]
+  ok_actions    = [aws_sns_topic.alarm.arn]
+
+  tags = local.common_tags
+}
+
 # EC2-based alarms
 
 # Detect EC2 CPU overload (e.g., cryptojacking)
@@ -293,8 +315,8 @@ resource "aws_cloudwatch_metric_alarm" "ec2_cpu" {
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"
   statistic           = "Average"
-  period              = 300 
-  evaluation_periods  = 3    # 3회 연속 (일시적 급증과 구분)
+  period              = 300
+  evaluation_periods  = 3 # 3회 연속 (일시적 급증과 구분)
   threshold           = 80
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
