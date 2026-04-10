@@ -58,7 +58,7 @@ resource "aws_iam_role_policy" "ec2" {
                     "kms:Decrypt"
                 ]
                 Resource = [
-                    var.kms_key_arn
+                    var.rds_key_arn
                 ]
             }
         ]
@@ -106,10 +106,6 @@ resource "aws_iam_role_policy" "cloudtrail" {
                 var.s3_log_bucket_arn,
                 "${var.s3_log_bucket_arn}/*"
             ]
-        },{
-            Effect = "Allow",
-            Action = [ "kms:GenerateDataKey", "kms:Decrypt" ]
-            Resource = [ var.kms_key_arn ]
         }]
     })
 }

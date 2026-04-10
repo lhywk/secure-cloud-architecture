@@ -51,3 +51,25 @@ resource "aws_acm_certificate_validation" "main" {
   certificate_arn         = aws_acm_certificate.main.arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
+
+# ACM Certificate for ALB (ap-northeast-2)
+# CloudFront requires us-east-1; ALB requires the region where it is deployed
+resource "aws_acm_certificate" "alb" {
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}"]
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project}-${var.environment}-alb-acm"
+  })
+}
+
+# Reuse the same DNS validation records created for the CloudFront certificate
+resource "aws_acm_certificate_validation" "alb" {
+  certificate_arn         = aws_acm_certificate.alb.arn
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
+}

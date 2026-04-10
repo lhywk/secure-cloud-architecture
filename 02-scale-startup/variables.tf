@@ -17,6 +17,20 @@ variable "region" {
   default     = "ap-northeast-2"
 }
 
+variable "aws_account_id" {
+  description = "AWS 계정 ID (KMS 키 정책에 사용)"
+  type        = string
+}
+
+# ──────────────────────────────────────────
+# IAM User
+# ──────────────────────────────────────────
+variable "iam_users" {
+  description = "IAM 유저 목록"
+  type = set(string)
+}
+
+
 # ──────────────────────────────────────────
 # 네트워크 (VPC)
 # ──────────────────────────────────────────
@@ -120,6 +134,12 @@ variable "db_allocated_storage" {
 variable "domain_name" {
   description = "Route 53에 등록된 도메인 이름"
   type        = string
+}
+
+variable "subdomain" {
+  description = "CloudFront에 연결할 서브도메인 (예: www)"
+  type        = string
+  default     = "www"
 }
 
 variable "cloudfront_price_class" {

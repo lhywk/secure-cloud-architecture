@@ -13,7 +13,7 @@ variable "users" {
   type = set(string)
 }
 
-variable "kms_key_arn" {
+variable "rds_key_arn" {
   description = "KMS 키 ARN (암호화 권한 부여용)"
   type        = string
 }
@@ -25,11 +25,6 @@ variable "s3_app_bucket_arn" {
 
 variable "s3_log_bucket_arn" {
   description = "CloudTrail 로그 버킷 ARN"
-  type        = string
-}
-
-variable "s3_frontend_bucket_arn" {
-  description = "CloudFront origin S3 버킷 ARN"
   type        = string
 }
 
