@@ -329,7 +329,6 @@ module "iam" {
   users             = var.iam_users
   secrets_key_arn   = module.kms.secrets_key_arn
   s3_app_bucket_arn = aws_s3_bucket.app.arn
-  s3_log_bucket_arn = aws_s3_bucket.logs.arn
   secrets_arn       = module.secrets.secret_arn
 }
 
