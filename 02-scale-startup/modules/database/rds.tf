@@ -26,8 +26,9 @@ resource "aws_db_instance" "mysql" {
   db_subnet_group_name   = aws_db_subnet_group.private_db.name
   vpc_security_group_ids = var.db_security_group_ids
 
+  # kms_key_id를 지정하지 않고 storage_encrypted만 활성화하면
+  # RDS의 AWS managed key (aws/rds)로 스토리지가 암호화된다.
   storage_encrypted = true
-  kms_key_id        = var.kms_key_id
 
   multi_az                = false
   publicly_accessible     = false

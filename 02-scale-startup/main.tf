@@ -76,24 +76,8 @@ module "network" {
 }
 
 # ──────────────────────────────────────────
-# KMS
-# 의존성 없음
-# RDS용, Secrets Manager용 키를 각각 생성
-# ──────────────────────────────────────────
-module "kms" {
-  source = "./modules/security/kms"
-
-  project     = var.project
-  environment = var.environment
-
-  kms_deletion_window = var.kms_deletion_window
-  region              = var.region
-  aws_account_id      = var.aws_account_id
-}
-
-# ──────────────────────────────────────────
 # Secrets
-# 의존성: kms
+# 의존성 없음
 # DB 접속 정보를 Secrets Manager에 저장
 # ──────────────────────────────────────────
 module "secrets" {
@@ -102,14 +86,13 @@ module "secrets" {
   project     = var.project
   environment = var.environment
 
-  kms_key_arn = module.kms.secrets_key_arn
   db_username = var.db_username
   db_name     = var.db_name
 }
 
 # ──────────────────────────────────────────
 # CloudFront ↔ ALB 공유 시크릿
-# 의존성: kms
+# 의존성 없음
 # CloudFront가 ALB로 요청 시 X-Origin-Secret 헤더에 삽입
 # ALB는 network/alb.tf에서 이 시크릿을 Secrets Manager에서 직접 읽어 검증
 # ──────────────────────────────────────────
@@ -119,8 +102,9 @@ resource "random_password" "cloudfront_origin_secret" {
 }
 
 resource "aws_secretsmanager_secret" "cloudfront_origin" {
-  name       = "${var.project}/${var.environment}/origin-secret"
-  kms_key_id = module.kms.secrets_key_arn
+  # kms_key_id를 지정하지 않으면 Secrets Manager의 AWS managed key
+  # (aws/secretsmanager)로 암호화된다.
+  name = "${var.project}/${var.environment}/origin-secret"
 
   tags = {
     Name        = "${var.project}-${var.environment}-origin-secret"
@@ -168,6 +152,18 @@ resource "aws_s3_bucket_versioning" "app" {
   }
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "app" {
+  bucket = aws_s3_bucket.app.id
+
+  rule {
+    # AES256은 S3 관리형 키를 사용하는 SSE-S3 암호화다.
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 # ──────────────────────────────────────────
 # Audit / Log S3 버킷
 # 의존성 없음
@@ -198,6 +194,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   bucket = aws_s3_bucket.logs.id
 
   rule {
+    # AES256은 S3 관리형 키를 사용하는 SSE-S3 암호화다.
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
     }
@@ -318,7 +315,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 
 # ──────────────────────────────────────────
 # IAM
-# 의존성: kms, secrets, app/log S3 버킷
+# 의존성: secrets, app/log S3 버킷
 # ──────────────────────────────────────────
 module "iam" {
   source = "./modules/security/iam"
@@ -327,14 +324,13 @@ module "iam" {
   environment = var.environment
 
   users             = var.iam_users
-  secrets_key_arn   = module.kms.secrets_key_arn
   s3_app_bucket_arn = aws_s3_bucket.app.arn
   secrets_arn       = module.secrets.secret_arn
 }
 
 # ──────────────────────────────────────────
 # Compute
-# 의존성: network, iam, kms
+# 의존성: network, iam
 # ──────────────────────────────────────────
 module "compute" {
   source = "./modules/compute"
@@ -347,7 +343,6 @@ module "compute" {
   alb_target_group_arn   = module.network.target_group_arn
 
   iam_instance_profile_name = module.iam.ec2_instance_profile_name
-  kms_key_id                = module.kms.rds_key_id
 
   tags = {
     Project     = var.project
@@ -358,7 +353,7 @@ module "compute" {
 
 # ──────────────────────────────────────────
 # Database
-# 의존성: network, kms, secrets
+# 의존성: network, secrets
 # ──────────────────────────────────────────
 module "database" {
   source = "./modules/database"
@@ -370,7 +365,6 @@ module "database" {
   db_security_group_ids = module.network.db_security_group_ids
 
   db_instance_class = var.db_instance_class
-  kms_key_id        = module.kms.rds_key_arn
   db_secret_id      = module.secrets.secret_id
 
   tags = {

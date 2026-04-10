@@ -133,17 +133,6 @@ resource "aws_iam_role_policy" "ec2" {
         Resource = [
           var.secrets_arn
         ]
-      },
-      {
-        Sid    = "AllowSecretsKmsDecrypt"
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt",
-          "kms:DescribeKey"
-        ]
-        Resource = [
-          var.secrets_key_arn
-        ]
       }
     ]
   })
@@ -190,8 +179,7 @@ resource "aws_iam_policy" "admin_boundary" {
           "acm:*",
           "route53:*",
           "sns:*",
-          "secretsmanager:*",
-          "kms:*"
+          "secretsmanager:*"
         ]
         Resource = "*"
       },

@@ -23,11 +23,6 @@ variable "db_instance_class" {
   type        = string
 }
 
-variable "kms_key_id" {
-  description = "RDS 스토리지 암호화에 사용할 KMS 키 ARN (security 모듈 output)"
-  type        = string
-}
-
 variable "db_secret_id" {
   description = "Secrets Manager에 저장된 DB 비밀번호 Secret ID (security 모듈 output)"
   type        = string

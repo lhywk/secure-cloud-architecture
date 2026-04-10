@@ -13,11 +13,6 @@ variable "users" {
   type        = set(string)
 }
 
-variable "secrets_key_arn" {
-  description = "Secrets Manager용 KMS 키 ARN (EC2 secret 조회 시 decrypt 권한 부여용)"
-  type        = string
-}
-
 variable "s3_app_bucket_arn" {
   description = "App Server가 접근할 S3 버킷 ARN"
   type        = string
