@@ -158,6 +158,12 @@ variable "s3_log_bucket_name" {
   type        = string
 }
 
+variable "cloudfront_origin_secret_name" {
+  description = "CloudFront -> ALB 공유 시크릿 이름. 기존 시크릿이 손상됐으면 새 이름으로 변경 가능"
+  type        = string
+  default     = null
+}
+
 # ──────────────────────────────────────────
 # 모니터링 (CloudWatch / SNS)
 # ──────────────────────────────────────────

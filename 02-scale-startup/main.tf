@@ -2,6 +2,18 @@ provider "aws" {
   region = var.region
 }
 
+# 현재 AWS 계정 ID를 조회한다.
+# CloudTrail S3 bucket policy의 AWSLogs/<account-id> 경로와 SourceArn 조건에 사용한다.
+data "aws_caller_identity" "current" {}
+
+# 공통 계산값
+# - cloudfront_origin_secret_id: origin secret 이름을 변수로 override할 수 있게 한다.
+# - cloudtrail_arn: CloudTrail이 로그 버킷에 쓸 수 있도록 bucket policy에서 trail ARN을 제한할 때 사용한다.
+locals {
+  cloudfront_origin_secret_id = coalesce(var.cloudfront_origin_secret_name, "${var.project}/${var.environment}/origin-secret")
+  cloudtrail_arn              = "arn:aws:cloudtrail:${var.region}:${data.aws_caller_identity.current.account_id}:trail/${var.project}-${var.environment}-trail"
+}
+
 # ──────────────────────────────────────────
 # DNS / ACM
 # 의존성 없음
@@ -14,7 +26,6 @@ module "dns" {
   environment = var.environment
 
   domain_name = var.domain_name
-  subdomain   = var.subdomain
 }
 
 # CloudFront → Route53 A 레코드
@@ -22,18 +33,6 @@ module "dns" {
 data "aws_route53_zone" "main" {
   name         = var.domain_name
   private_zone = false
-}
-
-resource "aws_route53_record" "cloudfront" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "${var.subdomain}.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = module.cdn.cloudfront_domain_name
-    zone_id                = module.cdn.cloudfront_hosted_zone_id
-    evaluate_target_health = false
-  }
 }
 
 resource "aws_route53_record" "cloudfront_root" {
@@ -68,6 +67,7 @@ module "network" {
 
   alb_certificate_arn         = module.dns.alb_certificate_arn
   alb_access_logs_bucket_name = aws_s3_bucket.logs.id
+  cloudfront_shared_secret    = random_password.cloudfront_origin_secret.result
 
   depends_on = [
     aws_secretsmanager_secret_version.cloudfront_origin,
@@ -94,7 +94,7 @@ module "secrets" {
 # CloudFront ↔ ALB 공유 시크릿
 # 의존성 없음
 # CloudFront가 ALB로 요청 시 X-Origin-Secret 헤더에 삽입
-# ALB는 network/alb.tf에서 이 시크릿을 Secrets Manager에서 직접 읽어 검증
+# 동일한 값을 Secrets Manager에도 저장하고, ALB 규칙에도 직접 주입한다.
 # ──────────────────────────────────────────
 resource "random_password" "cloudfront_origin_secret" {
   length  = 32
@@ -104,7 +104,7 @@ resource "random_password" "cloudfront_origin_secret" {
 resource "aws_secretsmanager_secret" "cloudfront_origin" {
   # kms_key_id를 지정하지 않으면 Secrets Manager의 AWS managed key
   # (aws/secretsmanager)로 암호화된다.
-  name = "${var.project}/${var.environment}/origin-secret"
+  name = local.cloudfront_origin_secret_id
 
   tags = {
     Name        = "${var.project}-${var.environment}-origin-secret"
@@ -117,6 +117,11 @@ resource "aws_secretsmanager_secret" "cloudfront_origin" {
 resource "aws_secretsmanager_secret_version" "cloudfront_origin" {
   secret_id     = aws_secretsmanager_secret.cloudfront_origin.id
   secret_string = random_password.cloudfront_origin_secret.result
+}
+
+moved {
+  from = module.observability.aws_s3_bucket.logs
+  to   = aws_s3_bucket.logs
 }
 
 # ──────────────────────────────────────────
@@ -170,8 +175,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "app" {
 # ALB Access Log와 CloudTrail을 함께 저장하는 감사 로그 버킷
 # ──────────────────────────────────────────
 resource "aws_s3_bucket" "logs" {
-  bucket              = var.s3_log_bucket_name
-  object_lock_enabled = true
+  bucket = var.s3_log_bucket_name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   tags = {
     Name        = var.s3_log_bucket_name
@@ -210,19 +218,6 @@ resource "aws_s3_bucket_versioning" "logs" {
   }
 }
 
-resource "aws_s3_bucket_object_lock_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    default_retention {
-      mode = "GOVERNANCE"
-      days = 90
-    }
-  }
-
-  depends_on = [aws_s3_bucket_versioning.logs]
-}
-
 resource "aws_s3_bucket_policy" "logs" {
   bucket = aws_s3_bucket.logs.id
 
@@ -238,10 +233,11 @@ resource "aws_s3_bucket_policy" "logs" {
           Service = "cloudtrail.amazonaws.com"
         }
         Action   = "s3:PutObject"
-        Resource = "${aws_s3_bucket.logs.arn}/cloudtrail/*"
+        Resource = "${aws_s3_bucket.logs.arn}/cloudtrail/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
         Condition = {
           StringEquals = {
             "s3:x-amz-acl" = "bucket-owner-full-control"
+            "aws:SourceArn" = local.cloudtrail_arn
           }
         }
       },
@@ -253,6 +249,11 @@ resource "aws_s3_bucket_policy" "logs" {
         }
         Action   = "s3:GetBucketAcl"
         Resource = aws_s3_bucket.logs.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceArn" = local.cloudtrail_arn
+          }
+        }
       },
       {
         Sid    = "AllowALBWrite"
@@ -409,7 +410,6 @@ module "cdn" {
   environment = var.environment
 
   domain_name             = var.domain_name
-  subdomain               = var.subdomain
   s3_frontend_bucket_name = var.s3_frontend_bucket_name
   cloudfront_price_class  = var.cloudfront_price_class
 

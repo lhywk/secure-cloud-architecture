@@ -75,3 +75,11 @@ variable "alb_access_logs_bucket_name" {
   description = "Shared audit/log bucket name used for ALB access logs"
   type        = string
 }
+
+# CloudFront가 ALB로 전달하는 X-Origin-Secret 값.
+# network 모듈이 Secrets Manager를 직접 조회하지 않고 루트 모듈에서 입력받는다.
+variable "cloudfront_shared_secret" {
+  description = "Shared secret value inserted by CloudFront and validated by the ALB"
+  type        = string
+  sensitive   = true
+}
