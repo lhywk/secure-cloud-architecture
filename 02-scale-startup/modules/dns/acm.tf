@@ -8,8 +8,9 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# apex와 wildcard가 같은 DNS validation CNAME을 반환할 수 있으므로
-# apex 도메인 레코드를 기준으로 잡고, wildcard가 완전히 동일한 경우엔 생성을 생략한다.
+# 이 스택은 apex 도메인과 wildcard 도메인만 함께 인증한다.
+# ACM은 이 조합에 대해 같은 DNS validation CNAME을 반환하므로
+# apex 도메인 기준 레코드 하나만 생성해 재사용한다.
 locals {
   acm_validation_by_domain = {
     for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
@@ -41,19 +42,10 @@ resource "aws_acm_certificate" "main" {
 
 # Automatically create DNS validation records in Route 53
 resource "aws_route53_record" "acm_validation" {
-  for_each = {
-    for domain_name, record in local.acm_validation_by_domain : domain_name => record
-    if domain_name == var.domain_name || (
-      record.name != local.acm_validation_by_domain[var.domain_name].name ||
-      record.type != local.acm_validation_by_domain[var.domain_name].type ||
-      record.record != local.acm_validation_by_domain[var.domain_name].record
-    )
-  }
-
   zone_id         = data.aws_route53_zone.main.zone_id
-  name            = each.value.name
-  type            = each.value.type
-  records         = [each.value.record]
+  name            = local.acm_validation_by_domain[var.domain_name].name
+  type            = local.acm_validation_by_domain[var.domain_name].type
+  records         = [local.acm_validation_by_domain[var.domain_name].record]
   ttl             = 60
   allow_overwrite = true
 }
@@ -63,7 +55,7 @@ resource "aws_acm_certificate_validation" "main" {
   provider = aws.us_east_1
 
   certificate_arn         = aws_acm_certificate.main.arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
+  validation_record_fqdns = [aws_route53_record.acm_validation.fqdn]
 }
 
 # ACM Certificate for ALB (ap-northeast-2)
@@ -85,5 +77,5 @@ resource "aws_acm_certificate" "alb" {
 # Reuse the same DNS validation records created for the CloudFront certificate
 resource "aws_acm_certificate_validation" "alb" {
   certificate_arn         = aws_acm_certificate.alb.arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
+  validation_record_fqdns = [aws_route53_record.acm_validation.fqdn]
 }
