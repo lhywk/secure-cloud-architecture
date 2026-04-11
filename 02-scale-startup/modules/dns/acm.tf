@@ -8,6 +8,18 @@ provider "aws" {
   region = "us-east-1"
 }
 
+# apex와 wildcard가 같은 DNS validation CNAME을 반환할 수 있으므로
+# apex 도메인 레코드를 기준으로 잡고, wildcard가 완전히 동일한 경우엔 생성을 생략한다.
+locals {
+  acm_validation_by_domain = {
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+}
+
 # ACM Certificate Issuance (us-east-1)
 # Wildcard certificate: covers both *.example.com and example.com simultaneously
 resource "aws_acm_certificate" "main" {
@@ -30,18 +42,20 @@ resource "aws_acm_certificate" "main" {
 # Automatically create DNS validation records in Route 53
 resource "aws_route53_record" "acm_validation" {
   for_each = {
-    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
+    for domain_name, record in local.acm_validation_by_domain : domain_name => record
+    if domain_name == var.domain_name || (
+      record.name != local.acm_validation_by_domain[var.domain_name].name ||
+      record.type != local.acm_validation_by_domain[var.domain_name].type ||
+      record.record != local.acm_validation_by_domain[var.domain_name].record
+    )
   }
 
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  records = [each.value.record]
-  ttl     = 60
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = each.value.name
+  type            = each.value.type
+  records         = [each.value.record]
+  ttl             = 60
+  allow_overwrite = true
 }
 
 # Wait for DNS validation to complete
