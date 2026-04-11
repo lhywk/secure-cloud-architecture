@@ -1,0 +1,19 @@
+output "ec2_instance_profile_name" {
+  description = "EC2 모듈에 전달할 Instance Profile 이름"
+  value       = module.security.ec2_instance_profile_name
+}
+
+output "ec2_role_arn" {
+  description = "EC2 IAM Role ARN"
+  value       = module.security.ec2_role_arn
+}
+
+output "iam_user_arn" {
+  description = "생성된 IAM User ARN"
+  value       = module.security.iam_user_arn
+}
+
+output "alarm_sns_topic_arn" {
+  description = "알람 SNS Topic ARN"
+  value       = module.observability.sns_topic_arn
+}
