@@ -58,7 +58,7 @@ resource "aws_cloudtrail" "main" {
   s3_bucket_name                = var.s3_log_bucket_name
   s3_key_prefix                 = "cloudtrail"
   include_global_service_events = true  # Include global services like IAM
-  is_multi_region_trail         = false # Single region (small-scale)
+  is_multi_region_trail         = true  # Capture global/IAM events more reliably
   enable_log_file_validation    = true  # Enable log file integrity validation
 
   # Integrate with CloudWatch Logs (required for metric-filter-based alarms)
