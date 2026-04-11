@@ -13,9 +13,3 @@ variable "domain_name" {
   description = "Domain name registered in Route53 (e.g., example.com)"
   type        = string
 }
-
-variable "subdomain" {
-  description = "Subdomain to be associated with CloudFront (e.g., www)"
-  type        = string
-  default     = "www"
-}
