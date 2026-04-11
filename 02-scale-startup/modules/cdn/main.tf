@@ -21,7 +21,7 @@ resource "aws_cloudfront_distribution" "main" {
   is_ipv6_enabled     = true
   http_version        = "http2"
   price_class         = var.cloudfront_price_class
-  aliases             = ["${var.subdomain}.${var.domain_name}"]
+  aliases             = [var.domain_name]
   comment             = "${var.project}-${var.environment} distribution"
   default_root_object = "index.html"
 

@@ -1,6 +1,6 @@
 output "application_url" {
   description = "Primary application URL"
-  value       = "https://${var.subdomain}.${var.domain_name}"
+  value       = "https://${var.domain_name}"
 }
 
 output "cloudfront_domain_name" {

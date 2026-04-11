@@ -14,12 +14,6 @@ variable "domain_name" {
   type        = string
 }
 
-variable "subdomain" {
-  description = "Subdomain to be associated with CloudFront (e.g., www)"
-  type        = string
-  default     = "www"
-}
-
 # S3
 variable "s3_frontend_bucket_name" {
   description = "Name of the S3 bucket for static resources"
