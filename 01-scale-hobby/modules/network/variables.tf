@@ -53,8 +53,9 @@ variable "health_check_path" {
 }
 
 variable "alb_certificate_arn" {
-  description = "ACM certificate ARN (dns 모듈 output)"
+  description = "ACM certificate ARN (dns 모듈 output). 도메인 없으면 빈 문자열."
   type        = string
+  default     = ""
 }
 
 

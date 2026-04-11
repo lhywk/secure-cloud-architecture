@@ -28,3 +28,47 @@ variable "alarm_email" {
   description = "CloudTrail 이벤트 알람을 수신할 이메일 주소"
   type        = string
 }
+
+# ──────────────────────────────────────────
+# DNS
+# ──────────────────────────────────────────
+
+variable "domain_name" {
+  description = "서비스 도메인 이름 (예: example.com). 없으면 빈 문자열."
+  type        = string
+  default     = ""
+}
+
+variable "hosted_zone_id" {
+  description = "Route53 Hosted Zone ID. 없으면 빈 문자열로 두면 Route53/ACM 검증 생략."
+  type        = string
+  default     = ""
+}
+
+# ──────────────────────────────────────────
+# Network
+# ──────────────────────────────────────────
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "availability_zone_a" {
+  description = "Primary AZ (EC2가 배치될 AZ)"
+  type        = string
+  default     = "ap-northeast-2a"
+}
+
+variable "availability_zone_b" {
+  description = "Secondary AZ (ALB 요구사항 충족용)"
+  type        = string
+  default     = "ap-northeast-2c"
+}
+
+variable "app_port" {
+  description = "앱 서버가 수신하는 포트"
+  type        = number
+  default     = 8080
+}

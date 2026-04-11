@@ -17,3 +17,18 @@ output "alarm_sns_topic_arn" {
   description = "알람 SNS Topic ARN"
   value       = module.observability.sns_topic_arn
 }
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = module.network.vpc_id
+}
+
+output "alb_dns_name" {
+  description = "ALB DNS 이름"
+  value       = module.network.alb_dns_name
+}
+
+output "ec2_instance_id" {
+  description = "EC2 인스턴스 ID"
+  value       = module.compute.ec2_instance_id
+}

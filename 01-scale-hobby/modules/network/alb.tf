@@ -38,8 +38,10 @@ resource "aws_lb_target_group" "app" {
   })
 }
 
-# HTTPS Listener (443) — 기본 동작: EC2로 포워드
+# HTTPS Listener (443) — 인증서 있을 때만 생성
 resource "aws_lb_listener" "https" {
+  count = var.alb_certificate_arn != "" ? 1 : 0
+
   load_balancer_arn = aws_lb.main.arn
   port              = 443
   protocol          = "HTTPS"
@@ -52,20 +54,31 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# HTTP Listener (80) — HTTPS로 리다이렉트
-resource "aws_lb_listener" "http_redirect" {
+# HTTP Listener (80)
+# 인증서 있으면 → HTTPS 301 리다이렉트
+# 인증서 없으면 → EC2로 직접 포워드 (도메인 없는 테스트 환경)
+resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
 
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+  dynamic "default_action" {
+    for_each = var.alb_certificate_arn != "" ? [1] : []
+    content {
+      type = "redirect"
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = var.alb_certificate_arn == "" ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.app.arn
     }
   }
 }
-
-
