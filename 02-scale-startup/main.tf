@@ -296,24 +296,6 @@ resource "aws_s3_bucket_policy" "logs" {
   })
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    id     = "log-lifecycle"
-    status = "Enabled"
-
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
-    }
-
-    expiration {
-      days = 365
-    }
-  }
-}
-
 # ──────────────────────────────────────────
 # IAM
 # 의존성: secrets, app/log S3 버킷
