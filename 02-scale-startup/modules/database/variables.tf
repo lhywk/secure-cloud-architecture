@@ -3,6 +3,11 @@ variable "environment" {
   type        = string
 }
 
+variable "availability_zone" {
+  description = "RDS 인스턴스를 EC2 app tier와 동일한 AZ에 고정하기 위한 가용 영역"
+  type        = string
+}
+
 variable "public_subnet_ids" {
   description = "ASG가 배치될 퍼블릭 서브넷 ID 목록"
   type        = list(string)

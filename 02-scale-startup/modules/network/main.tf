@@ -57,6 +57,9 @@ resource "aws_subnet" "private_b" {
   cidr_block        = var.private_subnet_cidr_b
   availability_zone = var.availability_zone_b
 
+  # Single-AZ RDS가 availability_zone_a에 고정되더라도
+  # DB subnet group의 AZ coverage를 위해 secondary private subnet은 유지한다.
+
   tags = merge(local.common_tags, {
     Name = "${var.project}-${var.environment}-private-b"
   })
