@@ -2,7 +2,7 @@
 
 # 1. 시스템 업데이트 및 패키지 설치
 yum update -y
-yum install -y amazon-ssm-agent mysql-server httpd
+yum install -y amazon-ssm-agent mariadb-server httpd
 
 # 2. SSM 에이전트 시작
 systemctl enable amazon-ssm-agent
@@ -14,12 +14,12 @@ systemctl start httpd
 echo "<h1>Hello from $(hostname -f)</h1>" > /var/www/html/index.html
 echo "ok" > /var/www/html/health
 
-# 4. MySQL 시작
-systemctl enable mysqld
-systemctl start mysqld
+# 4. MariaDB 시작
+systemctl enable mariadb
+systemctl start mariadb
 
-# 5. MySQL localhost 전용 바인딩 (외부 접근 차단)
+# 5. MariaDB localhost 전용 바인딩 (외부 접근 차단)
 echo "[mysqld]
 bind-address=127.0.0.1" > /etc/my.cnf.d/server.cnf
 
-systemctl restart mysqld
+systemctl restart mariadb
