@@ -92,21 +92,109 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-
 resource "aws_iam_instance_profile" "app" {
   name = "${local.name_prefix}-app-instance-profile"
   role = aws_iam_role.ec2.name
 }
 
 # ──────────────────────────────────────────
+# GitHub Actions OIDC Provider
+# Access Key 없이 OIDC로 AWS 인증
+# ──────────────────────────────────────────
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+
+  tags = local.common_tags
+}
+
+# ──────────────────────────────────────────
+# GitHub Actions Role (최소 권한)
+# S3 builds/ 업로드 + SSM Run Command만 허용
+# ──────────────────────────────────────────
+
+resource "aws_iam_role" "github_actions" {
+  name = "${local.name_prefix}-github-actions-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.github.arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+        }
+        StringLike = {
+          # 본인 GitHub 레포로 반드시 변경 (예: "repo:your-org/your-repo:ref:refs/heads/main")
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+        }
+      }
+    }]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy" "github_actions" {
+  name = "${local.name_prefix}-github-actions-policy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      # S3: builds/ 경로에만 업로드 허용
+      {
+        Sid    = "S3BuildUpload"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "${var.s3_app_bucket_arn}/builds/*"
+      },
+      # SSM: EC2에 Run Command 전달
+      {
+        Sid    = "SSMRunCommand"
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:DescribeInstanceInformation"
+        ]
+        Resource = [
+          "arn:aws:ec2:*:*:instance/*",
+          "arn:aws:ssm:*:*:document/AWS-RunShellScript"
+        ]
+      },
+      {
+        Sid      = "SSMDescribe"
+        Effect   = "Allow"
+        Action   = ["ssm:ListCommandInvocations", "ssm:DescribeInstanceInformation"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ──────────────────────────────────────────
 # S3 App Bucket Policy
-# EC2 Role만 허용 + HTTP 전체 Deny
+# EC2 Role + GitHub Actions Role 허용 + HTTP 전체 Deny
 # ──────────────────────────────────────────
 
 resource "aws_s3_bucket_policy" "app" {
   bucket = var.s3_app_bucket_id
 
-  depends_on = [aws_iam_role.ec2]
+  depends_on = [
+    aws_iam_role.ec2,
+    aws_iam_role.github_actions
+  ]
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -127,6 +215,19 @@ resource "aws_s3_bucket_policy" "app" {
           var.s3_app_bucket_arn,
           "${var.s3_app_bucket_arn}/*"
         ]
+      },
+      # GitHub Actions: builds/ 경로에만 업로드 허용
+      {
+        Sid    = "AllowGithubActionsRole"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.github_actions.arn
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "${var.s3_app_bucket_arn}/builds/*"
       },
       {
         Sid       = "DenyNonHttps"
