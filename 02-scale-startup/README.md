@@ -1,7 +1,7 @@
 # 02 Scale — Startup
 
 > [!IMPORTANT]
-> 스타트업 초기 서비스가 AWS에서 바로 운영 가능한 보안 기본선을 갖추도록 만든 Terraform 단일 스택입니다.
+> 이 아키텍처는 약 1천~1만명 규모의 일반 사용자와 4명의 관리자가 운영하는 환경을 기반으로 설계된 AWS 클라우드 아키텍처입니다. 
 
 ![Stage](https://img.shields.io/badge/Stage-02%20Startup-0A7E3B?style=flat-square)
 ![Scope](https://img.shields.io/badge/Scope-Single%20Environment-1F6FEB?style=flat-square)
@@ -14,11 +14,13 @@
 
 <img src="../doc/images/02-scale-startup.png" align="center" alt="소규모 아키텍처">
 
+<br>
+
 - CloudFront를 외부 진입점으로 사용하는 단일 환경 스택
 - 로그, 비밀, 접근 제어를 초기부터 포함
 - 임직원 ~4명, 사용자 1천~1만명 규모를 가정
 
-설계 의도와 위협 시나리오는 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고하세요.
+설계 의도와 위협 시나리오 등 자세한 내용은 저희의 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고하세요.
 
 ---
 
@@ -65,9 +67,8 @@ Secrets Manager → DB 비밀 + CloudFront/ALB 공유 시크릿
 ## 빠른 시작
 
 ```bash
-# 1. 변수 파일 작성
-cp terraform.tfvars.example terraform.tfvars
-vi terraform.tfvars
+# 1. 변수 파일 작성 (아래의 가이드 참고)
+touch terraform.tfvars
 
 # 2. 초기화
 terraform -chdir=02-scale-startup init
@@ -83,7 +84,7 @@ terraform -chdir=02-scale-startup apply tfplan
 
 ## tfvars 작성 가이드
 
-`terraform.tfvars.example`을 복사한 뒤 아래 항목을 채워주세요.
+`terraform.tfvars`를 새로 만들고 아래 항목과 같이 채워주세요.
 
 ### 공통 식별값
 
@@ -201,27 +202,6 @@ cloudwatch_log_retention_days = 14
 - [ ] CloudTrail 로그가 S3, CloudWatch에 기록되는지 확인
 - [ ] RDS 퍼블릭 접근 불가 상태 확인
 - [ ] IAM User 각자 MFA 등록
-
----
-
-## 운영 원칙
-
-- ALB를 퍼블릭 직접 엔드포인트로 사용하지 않는다
-- CloudFront → ALB 공유 시크릿 검증을 제거하지 않는다
-- RDS를 퍼블릭으로 전환하지 않는다
-- 로그 버킷 보호 정책을 임의로 완화하지 않는다
-- 장기 Access Key 대신 MFA + Role Assume을 우선한다
-
----
-
-## 로드맵
-
-| 단계 | 작업 |
-|------|------|
-| 공개 전 | WAF(CloudFront) 추가, 배포 자동화 정리 |
-| 초기 성장 | DB 백업/복구 리허설, 관측 지표 보강 |
-| 트래픽 증가 | NAT/Endpoint 설계 강화 |
-| 팀 확장 | 환경/계정 분리 전략, 03단계 전환 검토 |
 
 ---
 
