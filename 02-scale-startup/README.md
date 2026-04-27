@@ -18,7 +18,7 @@
 
 - CloudFront를 외부 진입점으로 사용하는 단일 환경 스택
 - 로그, 비밀, 접근 제어를 초기부터 포함
-- 임직원 ~4명, 사용자 1천~1만명 규모를 가정
+- 임직원 \~4명, 사용자 1천\~1만명 규모를 가정
 
 설계 의도와 위협 시나리오 등 자세한 내용은 저희의 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고하세요.
 
