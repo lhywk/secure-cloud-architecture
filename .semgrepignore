@@ -1,1 +1,6 @@
 python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host
+01-scale-hobby/
+02-scale-startup/
+03-scale-growth/
+04-scale-enterprise/
+05-scale-hyperscale/
