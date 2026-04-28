@@ -120,10 +120,13 @@ TEAM 뭉살흩죽의 Secure Cloud Architecture는 다음과 같은 목표로 제
     <td rowspan="3" width="20px"></td>
     <td rowspan="3" align="center" width="140px">
       <br/>
+      <img src="./doc/images/mentornim.png" width="80px"><br>
       <b>Mentor</b><br/>
       <a href="https://www.linkedin.com/in/sjhk/">홍성진</a>
       <br/><br/><br/>
-      <b>Project Leader</b><br/>박민서
+      <img src="./doc/images/plnim.png" width="80px"><br>
+      <b>Project Leader</b><br/>
+      <a href="https://www.linkedin.com/in/minseo-park-3b35a0384/">박민서</a>
       <br/>
     </td>
   </tr>
