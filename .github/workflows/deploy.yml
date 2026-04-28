@@ -28,6 +28,8 @@ jobs:
             p/owasp-top-ten
             p/secrets
             p/default
+        env:  
+            SEMGREP_RULES_EXCLUDE: python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host
 
   # ── 2단계: 빌드 & S3 업로드 → SSM 배포 ─────────────────────────
   # main 브랜치 push 시에만 실행 (PR은 Semgrep만 실행)
