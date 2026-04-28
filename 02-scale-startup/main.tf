@@ -350,9 +350,8 @@ module "compute" {
 # ──────────────────────────────────────────
 module "database" {
   source = "./modules/database"
-
-  environment       = var.environment
   availability_zone = var.availability_zones[0]
+  environment = var.environment
 
   public_subnet_ids     = module.network.public_subnet_ids
   private_subnet_ids    = module.network.private_subnet_ids

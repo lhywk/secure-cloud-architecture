@@ -1,7 +1,6 @@
-CLAUDE.md
-
 # Terraform working directory
 **/.terraform/
+**/.terraform.lock.hcl
 
 # Terraform state
 *.tfstate
@@ -10,6 +9,7 @@ CLAUDE.md
 # Terraform local variable files
 02-scale-startup/terraform.tfvars
 *.auto.tfvars
+
 
 # Terraform plan / override files
 *.tfplan
