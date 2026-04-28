@@ -71,6 +71,7 @@ TEAM 뭉살흩죽의 Secure Cloud Architecture는 다음과 같은 목표로 제
 
 ## 📁 4. 프로젝트 구조
 
+```
 📦 repo
 ├──  /01-scale-hobby/            # 바이브코딩 (~50명) 
 ├──  /02-scale-startup/          # 소규모 (1천~1만명)
@@ -78,6 +79,7 @@ TEAM 뭉살흩죽의 Secure Cloud Architecture는 다음과 같은 목표로 제
 ├──  /04-scale-enterprise/       # 중대규모 (~700만명)
 ├──  /05-scale-hyperscale/       # 대규모 (~1,000만명)
 └──  /doc/                       # README Assets
+```
 
 <br/>
 <div id="5"></div>
