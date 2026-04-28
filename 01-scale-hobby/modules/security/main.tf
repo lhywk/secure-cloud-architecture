@@ -131,7 +131,6 @@ resource "aws_iam_role" "github_actions" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          # 본인 GitHub 레포로 반드시 변경 (예: "repo:your-org/your-repo:ref:refs/heads/main")
           "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
         }
       }
@@ -158,25 +157,25 @@ resource "aws_iam_role_policy" "github_actions" {
         ]
         Resource = "${var.s3_app_bucket_arn}/builds/*"
       },
-      # SSM: EC2에 Run Command 전달
+      # SSM: EC2에 Run Command 전달 (Resource 한정)
       {
         Sid    = "SSMRunCommand"
         Effect = "Allow"
-        Action = [
-          "ssm:SendCommand",
-          "ssm:GetCommandInvocation",
-          "ssm:ListCommandInvocations",
-          "ssm:DescribeInstanceInformation"
-        ]
+        Action = ["ssm:SendCommand"]
         Resource = [
           "arn:aws:ec2:*:*:instance/*",
           "arn:aws:ssm:*:*:document/AWS-RunShellScript"
         ]
       },
+      # SSM: 명령 결과 조회 (Resource = * 필요)
       {
-        Sid      = "SSMDescribe"
-        Effect   = "Allow"
-        Action   = ["ssm:ListCommandInvocations", "ssm:DescribeInstanceInformation"]
+        Sid    = "SSMDescribe"
+        Effect = "Allow"
+        Action = [
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:DescribeInstanceInformation"
+        ]
         Resource = "*"
       }
     ]
