@@ -59,7 +59,13 @@ jobs:
             --exclude "*.git*" \
             --exclude ".github/*" \
             --exclude "*.md" \
-            --exclude "terraform/*"
+            --exclude "terraform/*" \
+            --exclude "01-scale-*" \
+            --exclude "02-scale-*" \
+            --exclude "03-scale-*" \
+            --exclude "04-scale-*" \
+            --exclude "05-scale-*" \
+            --exclude ".semgrepignore"
 
           aws s3 cp app-${{ github.sha }}.zip \
             s3://${{ secrets.S3_BUCKET_NAME }}/builds/app-${{ github.sha }}.zip
