@@ -25,4 +25,3 @@ resource "aws_instance" "app" {
     Name = "${var.project}-${var.environment}-app-server"
   })
 }
-
