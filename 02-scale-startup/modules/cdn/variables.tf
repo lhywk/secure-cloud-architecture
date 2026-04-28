@@ -42,3 +42,8 @@ variable "acm_certificate_arn" {
   description = "ACM certificate ARN for CloudFront (us-east-1, output from the dns module)"
   type        = string
 }
+
+variable "web_acl_arn" {
+  description = "WAFv2 Web ACL ARN for CloudFront"
+  type        = string
+}

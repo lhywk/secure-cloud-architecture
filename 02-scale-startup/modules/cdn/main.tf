@@ -24,6 +24,7 @@ resource "aws_cloudfront_distribution" "main" {
   aliases             = [var.domain_name]
   comment             = "${var.project}-${var.environment} distribution"
   default_root_object = "index.html"
+  web_acl_id          = var.web_acl_arn # WAF Web ACL ARN 전달
 
   # Origin 1: S3 (Static Resources)
   origin {
@@ -58,8 +59,8 @@ resource "aws_cloudfront_distribution" "main" {
     path_pattern           = "/static/*"
     target_origin_id       = "S3Origin"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods         = ["GET", "HEAD"]
-    cached_methods          = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
     compress               = true
 
     cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
@@ -70,8 +71,8 @@ resource "aws_cloudfront_distribution" "main" {
     path_pattern           = "/api/*"
     target_origin_id       = "ALBOrigin"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods         = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods          = ["GET", "HEAD"]
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
     compress               = true
 
     # Disable caching for API requests
@@ -83,8 +84,8 @@ resource "aws_cloudfront_distribution" "main" {
   default_cache_behavior {
     target_origin_id       = "ALBOrigin"
     viewer_protocol_policy = "redirect-to-https" # Redirect HTTP to HTTPS
-    allowed_methods         = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods          = ["GET", "HEAD"]
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
     compress               = true
 
     cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id

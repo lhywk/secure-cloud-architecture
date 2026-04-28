@@ -2,6 +2,11 @@ provider "aws" {
   region = var.region
 }
 
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 # 현재 AWS 계정 ID를 조회한다.
 # CloudTrail S3 bucket policy의 AWSLogs/<account-id> 경로와 SourceArn 조건에 사용한다.
 data "aws_caller_identity" "current" {}
@@ -236,7 +241,7 @@ resource "aws_s3_bucket_policy" "logs" {
         Resource = "${aws_s3_bucket.logs.arn}/cloudtrail/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
         Condition = {
           StringEquals = {
-            "s3:x-amz-acl" = "bucket-owner-full-control"
+            "s3:x-amz-acl"  = "bucket-owner-full-control"
             "aws:SourceArn" = local.cloudtrail_arn
           }
         }
@@ -341,7 +346,8 @@ module "compute" {
 module "database" {
   source = "./modules/database"
 
-  environment = var.environment
+  environment       = var.environment
+  availability_zone = var.availability_zones[0]
 
   public_subnet_ids     = module.network.public_subnet_ids
   private_subnet_ids    = module.network.private_subnet_ids
@@ -399,5 +405,24 @@ module "cdn" {
   acm_certificate_arn      = module.dns.acm_certificate_arn
   cloudfront_shared_secret = random_password.cloudfront_origin_secret.result
 
+  web_acl_arn = module.waf.web_acl_arn
+
   depends_on = [aws_secretsmanager_secret_version.cloudfront_origin]
+}
+
+module "waf" {
+  source = "./modules/security/waf"
+
+  providers = {
+    aws = aws.us_east_1
+  }
+
+  project     = var.project
+  environment = var.environment
+
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
