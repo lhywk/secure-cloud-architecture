@@ -9,3 +9,5 @@ def health():
 @app.route('/')
 def hello():
     return '<h1>Hello from Vibe Coding!</h1>', 200
+
+# 배포되자
