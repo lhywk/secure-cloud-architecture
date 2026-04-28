@@ -124,7 +124,7 @@ TEAM 뭉살흩죽의 Secure Cloud Architecture는 다음과 같은 목표로 제
       <b>Mentor</b><br/>
       <a href="https://www.linkedin.com/in/sjhk/">홍성진</a>
       <br/><br/><br/>
-      <img src="./doc/images/plnim.png" width="80px"><br>
+      <img src="./doc/images/plnim.jpg" width="80px"><br>
       <b>Project Leader</b><br/>
       <a href="https://www.linkedin.com/in/minseo-park-3b35a0384/">박민서</a>
       <br/>
