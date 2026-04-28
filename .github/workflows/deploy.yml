@@ -27,6 +27,7 @@ jobs:
           config: >-
             p/owasp-top-ten
             p/secrets
+            p/default
         env:  
             SEMGREP_RULES_EXCLUDE: python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host
 
