@@ -3,11 +3,6 @@
 
 # us-east-1 provider alias
 # An alias provider must be declared in environments/prod(or dev)/main.tf
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
-}
-
 # 이 스택은 apex 도메인과 wildcard 도메인만 함께 인증한다.
 # ACM은 이 조합에 대해 같은 DNS validation CNAME을 반환하므로
 # apex 도메인 기준 레코드 하나만 생성해 재사용한다.
