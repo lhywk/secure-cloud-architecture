@@ -37,3 +37,8 @@ output "github_actions_role_arn" {
   description = "GitHub Actions OIDC Role ARN (GitHub Secrets AWS_DEPLOY_ROLE_ARN에 등록)"
   value       = module.security.github_actions_role_arn
 }
+
+output "waf_web_acl_arn" {
+  description = "WAF Web ACL ARN"
+  value       = module.waf.web_acl_arn
+}
