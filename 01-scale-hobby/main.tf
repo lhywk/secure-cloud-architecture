@@ -137,3 +137,11 @@ resource "aws_route53_record" "alb" {
     evaluate_target_health = true
   }
 }
+
+module "waf" {
+  source = "./modules/waf"
+
+  project     = var.project
+  environment = var.environment
+  alb_arn     = module.network.alb_arn
+}
