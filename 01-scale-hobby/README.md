@@ -18,7 +18,7 @@
 
 - 단일 EC2에 앱과 DB를 함께 운영하는 최소 구성 스택
 - CloudFront, RDS, Auto Scaling 없이 ALB + 단일 EC2로 구성
-- 개인 개발자 1명, 사용자 1\~10명 규모를 가정
+- 개인 개발자 1명, 사용자 50명 규모를 가정
 
 설계 의도와 위협 시나리오 등 자세한 내용은 저희의 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고해주세요.
 
