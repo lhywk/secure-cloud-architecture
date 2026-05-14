@@ -1,26 +1,5 @@
-# ──────────────────────────────────────────
-# GuardDuty 디텍터 (Security Account 위임 관리자)
-# ──────────────────────────────────────────
 resource "aws_guardduty_detector" "main" {
   enable = true
-
-  datasources {
-    s3_logs {
-      enable = true
-    }
-    kubernetes {
-      audit_logs {
-        enable = false
-      }
-    }
-    malware_protection {
-      scan_ec2_instance_with_findings {
-        ebs_volumes {
-          enable = true
-        }
-      }
-    }
-  }
 
   tags = {
     Name      = "${var.project}-guardduty"
@@ -29,34 +8,38 @@ resource "aws_guardduty_detector" "main" {
   }
 }
 
-# 조직 수준에서 GuardDuty 자동 활성화 설정
+resource "aws_guardduty_detector_feature" "s3_data_events" {
+  detector_id = aws_guardduty_detector.main.id
+  name        = "S3_DATA_EVENTS"
+  status      = "ENABLED"
+}
+
+resource "aws_guardduty_detector_feature" "ebs_malware_protection" {
+  detector_id = aws_guardduty_detector.main.id
+  name        = "EBS_MALWARE_PROTECTION"
+  status      = "ENABLED"
+}
+
 resource "aws_guardduty_organization_configuration" "main" {
   auto_enable_organization_members = "ALL"
   detector_id                      = aws_guardduty_detector.main.id
-
-  datasources {
-    s3_logs {
-      auto_enable = true
-    }
-    malware_protection {
-      scan_ec2_instance_with_findings {
-        ebs_volumes {
-          auto_enable = true
-        }
-      }
-    }
-  }
 }
 
-# ──────────────────────────────────────────
-# EventBridge 라우팅
-# severity >= 7.0: 즉시 알림
-# severity 4.0-6.9: 주간 리포트
-# CryptoCurrency / CredentialExfiltration: 이외적으로 즉시 알림
-# ──────────────────────────────────────────
+resource "aws_guardduty_organization_configuration_feature" "s3_data_events" {
+  detector_id = aws_guardduty_detector.main.id
+  name        = "S3_DATA_EVENTS"
+  auto_enable = "ALL"
+}
+
+resource "aws_guardduty_organization_configuration_feature" "ebs_malware_protection" {
+  detector_id = aws_guardduty_detector.main.id
+  name        = "EBS_MALWARE_PROTECTION"
+  auto_enable = "ALL"
+}
+
 resource "aws_cloudwatch_event_rule" "guardduty_high_critical" {
   name        = "${var.project}-guardduty-high-critical"
-  description = "GuardDuty High/Critical 찾기 (severity >= 7.0) 즉시 알림"
+  description = "GuardDuty severity >= 7.0 즉시 알림"
 
   event_pattern = jsonencode({
     source      = ["aws.guardduty"]
@@ -80,13 +63,13 @@ resource "aws_cloudwatch_event_target" "guardduty_high_critical_sns" {
       region     = "$.region"
       finding_id = "$.detail.id"
     }
-    input_template = "\"GuardDuty [HIGH/CRITICAL] Finding\nSeverity: <severity>\nType: <type>\nAccount: <account>\nRegion: <region>\nFinding ID: <finding_id>\n\\n즉시 확인 필요\""
+    input_template = "\"[HIGH/CRITICAL] GuardDuty Finding\\nSeverity: <severity>\\nType: <type>\\nAccount: <account>\\nRegion: <region>\\nFinding ID: <finding_id>\""
   }
 }
 
 resource "aws_cloudwatch_event_rule" "guardduty_critical_types" {
   name        = "${var.project}-guardduty-critical-types"
-  description = "CryptoCurrency / InstanceCredentialExfiltration Finding 즉시 알림"
+  description = "CryptoCurrency / InstanceCredentialExfiltration 즉시 알림"
 
   event_pattern = jsonencode({
     source      = ["aws.guardduty"]
