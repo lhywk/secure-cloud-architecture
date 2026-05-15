@@ -1,5 +1,5 @@
 resource "aws_wafv2_web_acl" "cloudfront" {
-  name        = "${var.project_name}-cloudfront-waf"
+  name        = "${var.project}-cloudfront-waf"
   description = "WAF for CloudFront distribution"
   scope       = "CLOUDFRONT"
 
@@ -24,7 +24,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-CommonRuleSet"
+      metric_name                = "${var.project}-CommonRuleSet"
       sampled_requests_enabled   = true
     }
   }
@@ -46,7 +46,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-SQLiRuleSet"
+      metric_name                = "${var.project}-SQLiRuleSet"
       sampled_requests_enabled   = true
     }
   }
@@ -68,7 +68,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-KnownBadInputsRuleSet"
+      metric_name                = "${var.project}-KnownBadInputsRuleSet"
       sampled_requests_enabled   = true
     }
   }
@@ -90,7 +90,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-IpReputationList"
+      metric_name                = "${var.project}-IpReputationList"
       sampled_requests_enabled   = true
     }
   }
@@ -112,7 +112,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-AnonymousIpList"
+      metric_name                = "${var.project}-AnonymousIpList"
       sampled_requests_enabled   = true
     }
   }
@@ -148,14 +148,14 @@ resource "aws_wafv2_web_acl" "cloudfront" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "${var.project_name}-RateLimitLogin"
+      metric_name                = "${var.project}-RateLimitLogin"
       sampled_requests_enabled   = true
     }
   }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project_name}-WebACL"
+    metric_name                = "${var.project}-WebACL"
     sampled_requests_enabled   = true
   }
 
