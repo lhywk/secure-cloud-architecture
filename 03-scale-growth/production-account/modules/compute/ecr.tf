@@ -1,17 +1,16 @@
 resource "aws_ecr_repository" "app" {
-  name                 = "${var.project_name}-app"
+  name                 = "${var.project}-${var.environment}-app"
   image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
   }
 
-  encryption_configuration {
-    encryption_type = "KMS"
-    kms_key         = var.s3_cmk_arn
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
   }
-
-  tags = var.tags
 }
 
 resource "aws_ecr_lifecycle_policy" "app" {
@@ -21,16 +20,14 @@ resource "aws_ecr_lifecycle_policy" "app" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last 10 production images"
+        description  = "Keep last 10 tagged images"
         selection = {
           tagStatus     = "tagged"
           tagPrefixList = ["v", "prod"]
           countType     = "imageCountMoreThan"
           countNumber   = 10
         }
-        action = {
-          type = "expire"
-        }
+        action = { type = "expire" }
       },
       {
         rulePriority = 2
@@ -41,9 +38,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
           countUnit   = "days"
           countNumber = 7
         }
-        action = {
-          type = "expire"
-        }
+        action = { type = "expire" }
       }
     ]
   })

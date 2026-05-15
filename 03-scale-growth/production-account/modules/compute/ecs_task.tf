@@ -1,110 +1,49 @@
+data "aws_region" "current" {}
+
 resource "aws_cloudwatch_log_group" "ecs_app" {
-  name              = "/ecs/${var.project_name}"
+  name              = "/ecs/${var.project}-${var.environment}"
   retention_in_days = 30
-  kms_key_id        = var.secrets_cmk_arn
 
-  tags = var.tags
-}
-
-resource "aws_iam_role" "ecs_execution" {
-  name = "${var.project_name}-ecs-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-      Action    = "sts:AssumeRole"
-    }]
-  })
-
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_managed" {
-  role       = aws_iam_role.ecs_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_iam_role_policy" "ecs_execution_secrets" {
-  name = "${var.project_name}-ecs-execution-secrets"
-  role = aws_iam_role.ecs_execution.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "kms:Decrypt"
-        ]
-        Resource = [
-          var.db_secret_arn,
-          var.redis_auth_secret_arn,
-          var.secrets_cmk_arn
-        ]
-      }
-    ]
-  })
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_ecs_task_definition" "app" {
-  family                   = "${var.project_name}-app"
+  family                   = "${var.project}-${var.environment}-app"
   network_mode             = "awsvpc"
   requires_compatibilities = ["EC2"]
-  cpu                      = var.task_cpu
-  memory                   = var.task_memory
-  task_role_arn            = var.task_role_arn
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = var.ecs_task_role_arn
+  execution_role_arn       = var.ecs_execution_role_arn
 
   container_definitions = jsonencode([
     {
       name      = "app"
-      image     = "${aws_ecr_repository.app.repository_url}:latest"
-      cpu       = var.task_cpu
-      memory    = var.task_memory
+      image     = var.container_image
       essential = true
       user      = "1000:1000"
 
       portMappings = [
         {
-          containerPort = 8080
+          containerPort = var.container_port
           protocol      = "tcp"
         }
       ]
 
       secrets = [
         {
-          name      = "DB_PASSWORD"
-          valueFrom = "${var.db_secret_arn}:password::"
-        },
-        {
-          name      = "DB_USERNAME"
-          valueFrom = "${var.db_secret_arn}:username::"
-        },
-        {
-          name      = "REDIS_AUTH_TOKEN"
-          valueFrom = "${var.redis_auth_secret_arn}:auth_token::"
-        }
-      ]
-
-      environment = [
-        {
-          name  = "DB_HOST"
-          value = var.db_endpoint
-        },
-        {
-          name  = "REDIS_HOST"
-          value = var.redis_endpoint
+          name      = "DB_SECRET"
+          valueFrom = var.secrets_arn
         }
       ]
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/${var.project_name}"
-          "awslogs-region"        = var.region
+          "awslogs-group"         = "/ecs/${var.project}-${var.environment}"
+          "awslogs-region"        = data.aws_region.current.name
           "awslogs-stream-prefix" = "app"
         }
       }
@@ -112,12 +51,14 @@ resource "aws_ecs_task_definition" "app" {
       readonlyRootFilesystem = true
 
       linuxParameters = {
-        capabilities = {
-          drop = ["ALL"]
-        }
+        capabilities = { drop = ["ALL"] }
       }
     }
   ])
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }

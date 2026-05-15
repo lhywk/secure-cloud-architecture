@@ -1,5 +1,5 @@
 resource "aws_cloudfront_origin_access_control" "frontend" {
-  name                              = "${var.project_name}-frontend-oac"
+  name                              = "${var.project}-${var.environment}-frontend-oac"
   description                       = "OAC for frontend S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
@@ -9,11 +9,11 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "${var.project_name} CloudFront distribution"
+  comment             = "${var.project}-${var.environment} CloudFront"
   default_root_object = "index.html"
   aliases             = [var.domain_name, "www.${var.domain_name}"]
-  web_acl_id          = var.waf_web_acl_arn
-  price_class         = "PriceClass_200"
+  web_acl_id          = var.web_acl_arn
+  price_class         = var.cloudfront_price_class
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -34,7 +34,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     custom_header {
       name  = "X-Origin-Secret"
-      value = var.cloudfront_origin_secret
+      value = var.cloudfront_shared_secret
     }
   }
 
@@ -47,9 +47,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     forwarded_values {
       query_string = false
-      cookies {
-        forward = "none"
-      }
+      cookies { forward = "none" }
     }
 
     min_ttl     = 0
@@ -68,9 +66,7 @@ resource "aws_cloudfront_distribution" "main" {
     forwarded_values {
       query_string = true
       headers      = ["Authorization", "Content-Type"]
-      cookies {
-        forward = "all"
-      }
+      cookies { forward = "all" }
     }
 
     min_ttl     = 0
@@ -79,22 +75,19 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
+    geo_restriction { restriction_type = "none" }
   }
 
   viewer_certificate {
-    acm_certificate_arn      = var.cloudfront_certificate_arn
+    acm_certificate_arn      = var.acm_certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
-  logging_config {
-    include_cookies = false
-    bucket          = "${var.log_archive_bucket_name}.s3.amazonaws.com"
-    prefix          = "cloudfront/"
+  tags = {
+    Name        = "${var.project}-${var.environment}-cloudfront"
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
   }
-
-  tags = var.tags
 }

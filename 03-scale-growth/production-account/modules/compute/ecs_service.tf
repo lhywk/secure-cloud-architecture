@@ -1,8 +1,8 @@
 resource "aws_ecs_service" "app" {
-  name            = "${var.project_name}-app"
+  name            = "${var.project}-${var.environment}-app"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = var.desired_count
+  desired_count   = var.asg_desired_capacity
 
   capacity_provider_strategy {
     capacity_provider = aws_ecs_capacity_provider.main.name
@@ -17,9 +17,9 @@ resource "aws_ecs_service" "app" {
   }
 
   load_balancer {
-    target_group_arn = var.target_group_arn
+    target_group_arn = var.alb_target_group_arn
     container_name   = "app"
-    container_port   = 8080
+    container_port   = var.container_port
   }
 
   deployment_circuit_breaker {
@@ -34,7 +34,11 @@ resource "aws_ecs_service" "app" {
   enable_execute_command            = true
   health_check_grace_period_seconds = 60
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
 }

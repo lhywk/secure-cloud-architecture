@@ -1,10 +1,9 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "tags" {
-  type    = map(string)
-  default = {}
+variable "environment" {
+  type = string
 }
 
 variable "db_subnet_ids" {
@@ -19,40 +18,40 @@ variable "cache_security_group_id" {
   type = string
 }
 
-variable "rds_cmk_arn" {
+variable "rds_kms_key_arn" {
   type = string
 }
 
-variable "secrets_cmk_arn" {
-  type = string
-}
-
-variable "rds_instance_class" {
+variable "db_instance_class" {
   type    = string
   default = "db.t3.medium"
 }
 
-variable "db_name" {
+variable "db_engine" {
   type    = string
-  default = "appdb"
+  default = "mysql"
 }
 
-variable "db_username" {
-  type      = string
-  sensitive = true
+variable "db_engine_version" {
+  type    = string
+  default = "8.0"
 }
 
-variable "db_password" {
-  type      = string
-  sensitive = true
+variable "db_allocated_storage" {
+  type    = number
+  default = 100
 }
 
-variable "redis_node_type" {
+variable "db_secret_id" {
+  type = string
+}
+
+variable "cache_node_type" {
   type    = string
   default = "cache.t3.medium"
 }
 
-variable "redis_auth_token" {
+variable "cache_auth_token" {
   type      = string
   sensitive = true
 }

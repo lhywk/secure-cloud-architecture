@@ -1,5 +1,9 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# ECS Task Role
 resource "aws_iam_role" "ecs_task" {
-  name = "${var.project_name}-ecs-task-role"
+  name = "${var.project}-${var.environment}-ecs-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -10,7 +14,7 @@ resource "aws_iam_role" "ecs_task" {
     }]
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role_policy" "ecs_task_secrets" {
@@ -21,16 +25,14 @@ resource "aws_iam_role_policy" "ecs_task_secrets" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "SecretsManagerRead"
         Effect = "Allow"
         Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-        Resource = ["arn:aws:secretsmanager:${var.region}:${var.account_id}:secret:${var.project_name}/*"]
+        Resource = ["arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:${var.project}/*"]
       },
       {
-        Sid      = "KMSDecrypt"
         Effect   = "Allow"
         Action   = ["kms:Decrypt", "kms:DescribeKey"]
-        Resource = [var.secrets_cmk_arn]
+        Resource = [var.secrets_kms_key_arn]
       }
     ]
   })
@@ -42,25 +44,17 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "S3Access"
-        Effect = "Allow"
-        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
-        Resource = [var.app_bucket_arn, "${var.app_bucket_arn}/*"]
-      },
-      {
-        Sid    = "S3KMSAccess"
-        Effect = "Allow"
-        Action = ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"]
-        Resource = [var.s3_cmk_arn]
-      }
-    ]
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+      Resource = [var.s3_app_bucket_arn, "${var.s3_app_bucket_arn}/*"]
+    }]
   })
 }
 
+# ECS Instance Role
 resource "aws_iam_role" "ecs_instance" {
-  name = "${var.project_name}-ecs-instance-role"
+  name = "${var.project}-${var.environment}-ecs-instance-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -71,7 +65,7 @@ resource "aws_iam_role" "ecs_instance" {
     }]
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_instance_ssm" {
@@ -89,40 +83,66 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
-resource "aws_iam_role_policy" "ecs_instance_ebs_kms" {
-  name = "ebs-cmk-access"
-  role = aws_iam_role.ecs_instance.id
+resource "aws_iam_instance_profile" "ecs" {
+  name = "${var.project}-${var.environment}-ecs-instance-profile"
+  role = aws_iam_role.ecs_instance.name
+
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
+}
+
+# ECS Execution Role
+resource "aws_iam_role" "ecs_execution" {
+  name = "${var.project}-${var.environment}-ecs-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_managed" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy" "ecs_execution_secrets" {
+  name = "secrets-pull"
+  role = aws_iam_role.ecs_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["kms:Decrypt", "kms:GenerateDataKey", "kms:DescribeKey", "kms:CreateGrant", "kms:ReEncrypt*"]
-      Resource = [var.ebs_cmk_arn]
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = [var.secrets_arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:DescribeKey"]
+        Resource = [var.secrets_kms_key_arn]
+      }
+    ]
   })
 }
 
-resource "aws_iam_instance_profile" "ecs" {
-  name = "${var.project_name}-ecs-instance-profile"
-  role = aws_iam_role.ecs_instance.name
-
-  tags = var.tags
-}
-
+# GitHub Actions OIDC
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd"
-  ]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1", "1c58a3a8518e8759bf075b76b750d4f2df264fcd"]
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role" "github_actions" {
-  name = "${var.project_name}-github-actions-role"
+  name = "${var.project}-${var.environment}-github-actions-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -131,17 +151,13 @@ resource "aws_iam_role" "github_actions" {
       Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
-        StringEquals = {
-          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        }
-        StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
-        }
+        StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
+        StringLike   = { "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*" }
       }
     }]
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role_policy" "github_actions" {
@@ -151,47 +167,21 @@ resource "aws_iam_role_policy" "github_actions" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
       {
-        Sid      = "ECRAuth"
+        Effect = "Allow"
+        Action = ["ecr:BatchCheckLayerAvailability", "ecr:CompleteLayerUpload", "ecr:InitiateLayerUpload", "ecr:PutImage", "ecr:UploadLayerPart", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+        Resource = ["arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/${var.project}-*"]
+      },
+      {
         Effect   = "Allow"
-        Action   = ["ecr:GetAuthorizationToken"]
+        Action   = ["ecs:UpdateService", "ecs:DescribeServices", "ecs:RegisterTaskDefinition", "ecs:DeregisterTaskDefinition", "ecs:DescribeTaskDefinition"]
         Resource = "*"
       },
       {
-        Sid    = "ECRPush"
-        Effect = "Allow"
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:BatchGetImage",
-          "ecr:GetDownloadUrlForLayer"
-        ]
-        Resource = ["arn:aws:ecr:${var.region}:${var.account_id}:repository/${var.project_name}-*"]
-      },
-      {
-        Sid    = "ECSDeployment"
-        Effect = "Allow"
-        Action = [
-          "ecs:UpdateService",
-          "ecs:DescribeServices",
-          "ecs:RegisterTaskDefinition",
-          "ecs:DeregisterTaskDefinition",
-          "ecs:DescribeTaskDefinition"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "PassRole"
-        Effect = "Allow"
-        Action = ["iam:PassRole"]
-        Resource = [
-          aws_iam_role.ecs_instance.arn,
-          "arn:aws:iam::${var.account_id}:role/${var.project_name}-ecs-task-role",
-          "arn:aws:iam::${var.account_id}:role/${var.project_name}-ecs-execution-role"
-        ]
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = [aws_iam_role.ecs_instance.arn, aws_iam_role.ecs_task.arn, aws_iam_role.ecs_execution.arn]
       }
     ]
   })

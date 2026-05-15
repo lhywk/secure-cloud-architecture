@@ -9,7 +9,7 @@ data "aws_ami" "ecs_optimized" {
 }
 
 resource "aws_launch_template" "ecs" {
-  name_prefix   = "${var.project_name}-ecs-"
+  name_prefix   = "${var.project}-${var.environment}-ecs-"
   image_id      = data.aws_ami.ecs_optimized.id
   instance_type = var.instance_type
 
@@ -20,7 +20,7 @@ resource "aws_launch_template" "ecs" {
   }
 
   iam_instance_profile {
-    arn = var.instance_profile_arn
+    name = var.ecs_instance_profile_name
   }
 
   network_interfaces {
@@ -36,7 +36,7 @@ resource "aws_launch_template" "ecs" {
       volume_size           = 30
       volume_type           = "gp3"
       encrypted             = true
-      kms_key_id            = var.ebs_cmk_arn
+      kms_key_id            = var.ebs_kms_key_arn
       delete_on_termination = true
     }
   }
@@ -45,30 +45,41 @@ resource "aws_launch_template" "ecs" {
     #!/bin/bash
     echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
     echo ECS_ENABLE_TASK_IAM_ROLE=true >> /etc/ecs/ecs.config
-    echo ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true >> /etc/ecs/ecs.config
     echo ECS_AWSVPC_BLOCK_IMDS=true >> /etc/ecs/ecs.config
   EOF
   )
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "${var.project_name}-ecs-instance" })
+    tags = {
+      Name        = "${var.project}-${var.environment}-ecs-instance"
+      Project     = var.project
+      Environment = var.environment
+    }
   }
 
   tag_specifications {
     resource_type = "volume"
-    tags          = merge(var.tags, { Name = "${var.project_name}-ecs-volume" })
+    tags = {
+      Name        = "${var.project}-${var.environment}-ecs-volume"
+      Project     = var.project
+      Environment = var.environment
+    }
   }
 
   lifecycle {
     create_before_destroy = true
   }
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_autoscaling_group" "ecs" {
-  name                = "${var.project_name}-ecs-asg"
+  name                = "${var.project}-${var.environment}-ecs-asg"
   vpc_zone_identifier = var.private_subnet_ids
   min_size            = var.asg_min_size
   max_size            = var.asg_max_size
@@ -83,17 +94,20 @@ resource "aws_autoscaling_group" "ecs" {
 
   tag {
     key                 = "Name"
-    value               = "${var.project_name}-ecs-instance"
+    value               = "${var.project}-${var.environment}-ecs-instance"
     propagate_at_launch = true
   }
 
-  dynamic "tag" {
-    for_each = var.tags
-    content {
-      key                 = tag.key
-      value               = tag.value
-      propagate_at_launch = true
-    }
+  tag {
+    key                 = "Project"
+    value               = var.project
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Environment"
+    value               = var.environment
+    propagate_at_launch = true
   }
 
   lifecycle {

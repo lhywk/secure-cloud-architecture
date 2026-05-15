@@ -1,5 +1,7 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "config" {
-  name = "${var.project_name}-config-role"
+  name = "${var.project}-${var.environment}-config-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -10,7 +12,7 @@ resource "aws_iam_role" "config" {
     }]
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role_policy_attachment" "config_managed" {
@@ -33,17 +35,15 @@ resource "aws_iam_role_policy" "config_s3" {
       {
         Effect   = "Allow"
         Action   = "s3:PutObject"
-        Resource = "arn:aws:s3:::${var.log_archive_bucket_name}/config-history/AWSLogs/${var.account_id}/*"
-        Condition = {
-          StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" }
-        }
+        Resource = "arn:aws:s3:::${var.log_archive_bucket_name}/config-history/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" } }
       }
     ]
   })
 }
 
 resource "aws_config_configuration_recorder" "main" {
-  name     = "${var.project_name}-config-recorder"
+  name     = "${var.project}-${var.environment}-config-recorder"
   role_arn = aws_iam_role.config.arn
 
   recording_group {
@@ -53,7 +53,7 @@ resource "aws_config_configuration_recorder" "main" {
 }
 
 resource "aws_config_delivery_channel" "main" {
-  name           = "${var.project_name}-config-delivery"
+  name           = "${var.project}-${var.environment}-config-delivery"
   s3_bucket_name = var.log_archive_bucket_name
   s3_key_prefix  = "config-history"
 

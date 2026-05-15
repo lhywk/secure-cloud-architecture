@@ -1,34 +1,8 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "account_id" {
-  type = string
-}
-
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
-
-variable "s3_cmk_arn" {
-  type = string
-}
-
-variable "waf_web_acl_arn" {
-  type = string
-}
-
-variable "alb_dns_name" {
-  type = string
-}
-
-variable "cloudfront_origin_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "cloudfront_certificate_arn" {
+variable "environment" {
   type = string
 }
 
@@ -36,6 +10,32 @@ variable "domain_name" {
   type = string
 }
 
-variable "log_archive_bucket_name" {
+variable "s3_frontend_bucket_name" {
+  type = string
+}
+
+variable "cloudfront_price_class" {
+  type    = string
+  default = "PriceClass_200"
+}
+
+variable "alb_dns_name" {
+  type = string
+}
+
+variable "acm_certificate_arn" {
+  type = string
+}
+
+variable "cloudfront_shared_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "s3_cmk_key_arn" {
+  type = string
+}
+
+variable "web_acl_arn" {
   type = string
 }

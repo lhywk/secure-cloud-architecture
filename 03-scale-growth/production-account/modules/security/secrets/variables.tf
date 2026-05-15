@@ -1,24 +1,14 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
-
-variable "secrets_cmk_arn" {
+variable "environment" {
   type = string
 }
 
 variable "db_username" {
-  type      = string
-  sensitive = true
-}
-
-variable "db_password" {
-  type      = string
-  sensitive = true
+  type    = string
+  default = "dbadmin"
 }
 
 variable "db_name" {
@@ -26,18 +16,6 @@ variable "db_name" {
   default = "appdb"
 }
 
-variable "redis_auth_token" {
-  type      = string
-  sensitive = true
-}
-
-variable "api_key" {
-  type      = string
-  sensitive = true
-  default   = "REPLACE_ME"
-}
-
-variable "cloudfront_origin_secret" {
-  type      = string
-  sensitive = true
+variable "secrets_kms_key_arn" {
+  type = string
 }

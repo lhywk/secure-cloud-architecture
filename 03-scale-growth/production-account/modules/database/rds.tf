@@ -1,12 +1,34 @@
-resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-rds-subnet-group"
-  subnet_ids = var.db_subnet_ids
-
-  tags = merge(var.tags, { Name = "${var.project_name}-rds-subnet-group" })
+resource "random_password" "db" {
+  length  = 32
+  special = false
 }
 
-resource "aws_db_parameter_group" "mysql8" {
-  name   = "${var.project_name}-mysql8"
+resource "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = var.db_secret_id
+
+  secret_string = jsonencode({
+    username = "dbadmin"
+    password = random_password.db.result
+    port     = 3306
+    engine   = var.db_engine
+    dbname   = "appdb"
+  })
+}
+
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project}-${var.environment}-rds-subnet-group"
+  subnet_ids = var.db_subnet_ids
+
+  tags = {
+    Name        = "${var.project}-${var.environment}-rds-subnet-group"
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_db_parameter_group" "main" {
+  name   = "${var.project}-${var.environment}-mysql8"
   family = "mysql8.0"
 
   parameter {
@@ -24,35 +46,39 @@ resource "aws_db_parameter_group" "mysql8" {
     value = "FILE"
   }
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_db_instance" "main" {
-  identifier = "${var.project_name}-rds"
+  identifier = "${var.project}-${var.environment}-rds"
 
-  engine         = "mysql"
-  engine_version = "8.0"
-  instance_class = var.rds_instance_class
+  engine         = var.db_engine
+  engine_version = var.db_engine_version
+  instance_class = var.db_instance_class
 
-  allocated_storage     = 100
-  max_allocated_storage = 500
+  allocated_storage     = var.db_allocated_storage
+  max_allocated_storage = var.db_allocated_storage * 5
   storage_type          = "gp3"
   storage_encrypted     = true
-  kms_key_id            = var.rds_cmk_arn
+  kms_key_id            = var.rds_kms_key_arn
 
-  db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
+  db_name  = "appdb"
+  username = "dbadmin"
+  password = random_password.db.result
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.db_security_group_id]
-  parameter_group_name   = aws_db_parameter_group.mysql8.name
+  parameter_group_name   = aws_db_parameter_group.main.name
 
   multi_az               = true
   publicly_accessible    = false
   deletion_protection    = true
   skip_final_snapshot    = false
-  final_snapshot_identifier = "${var.project_name}-rds-final-snapshot"
+  final_snapshot_identifier = "${var.project}-${var.environment}-rds-final"
 
   backup_retention_period = 7
   backup_window           = "03:00-04:00"
@@ -62,10 +88,17 @@ resource "aws_db_instance" "main" {
   copy_tags_to_snapshot      = true
 
   performance_insights_enabled          = true
-  performance_insights_kms_key_id       = var.rds_cmk_arn
+  performance_insights_kms_key_id       = var.rds_kms_key_arn
   performance_insights_retention_period = 7
 
   enabled_cloudwatch_logs_exports = ["audit", "error", "general", "slowquery"]
 
-  tags = merge(var.tags, { Name = "${var.project_name}-rds" })
+  depends_on = [aws_secretsmanager_secret_version.db_credentials]
+
+  tags = {
+    Name        = "${var.project}-${var.environment}-rds"
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }

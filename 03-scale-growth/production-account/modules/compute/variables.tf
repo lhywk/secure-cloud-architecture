@@ -1,14 +1,9 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "region" {
+variable "environment" {
   type = string
-}
-
-variable "tags" {
-  type    = map(string)
-  default = {}
 }
 
 variable "private_subnet_ids" {
@@ -19,61 +14,38 @@ variable "ecs_security_group_id" {
   type = string
 }
 
-variable "target_group_arn" {
+variable "alb_target_group_arn" {
   type = string
 }
 
-variable "task_role_arn" {
+variable "ecs_task_role_arn" {
   type = string
 }
 
-variable "instance_profile_arn" {
+variable "ecs_execution_role_arn" {
   type = string
 }
 
-variable "ebs_cmk_arn" {
+variable "ecs_instance_profile_name" {
   type = string
 }
 
-variable "s3_cmk_arn" {
+variable "ebs_kms_key_arn" {
   type = string
 }
 
-variable "secrets_cmk_arn" {
+variable "secrets_arn" {
   type = string
 }
 
-variable "db_secret_arn" {
-  type = string
-}
-
-variable "redis_auth_secret_arn" {
-  type = string
-}
-
-variable "db_endpoint" {
+variable "container_image" {
   type    = string
-  default = ""
+  default = "nginx:latest"
 }
 
-variable "redis_endpoint" {
-  type    = string
-  default = ""
-}
-
-variable "task_cpu" {
+variable "container_port" {
   type    = number
-  default = 512
-}
-
-variable "task_memory" {
-  type    = number
-  default = 1024
-}
-
-variable "desired_count" {
-  type    = number
-  default = 2
+  default = 8080
 }
 
 variable "instance_type" {

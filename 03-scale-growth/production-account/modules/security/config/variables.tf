@@ -1,20 +1,15 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "account_id" {
+variable "environment" {
   type = string
-}
-
-variable "tags" {
-  type    = map(string)
-  default = {}
 }
 
 variable "log_archive_bucket_name" {
   type = string
 }
 
-variable "ops_sns_topic_arn" {
+variable "sns_topic_arn" {
   type = string
 }

@@ -1,33 +1,24 @@
-variable "project_name" {
+variable "project" {
   type = string
 }
 
-variable "region" {
+variable "environment" {
   type = string
 }
 
-variable "account_id" {
+variable "secrets_arn" {
   type = string
 }
 
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
-
-variable "secrets_cmk_arn" {
+variable "s3_app_bucket_arn" {
   type = string
 }
 
-variable "s3_cmk_arn" {
+variable "rds_kms_key_arn" {
   type = string
 }
 
-variable "ebs_cmk_arn" {
-  type = string
-}
-
-variable "app_bucket_arn" {
+variable "secrets_kms_key_arn" {
   type = string
 }
 

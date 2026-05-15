@@ -11,64 +11,60 @@ locals {
 }
 
 resource "aws_cloudwatch_event_rule" "config_compliance_immediate" {
-  name        = "${var.project_name}-config-noncompliant-critical"
+  name        = "${var.project}-${var.environment}-config-noncompliant-critical"
   description = "Triggers SNS for critical Config rule non-compliance"
 
   event_pattern = jsonencode({
     source      = ["aws.config"]
     detail-type = ["Config Rules Compliance Change"]
     detail = {
-      messageType    = ["ComplianceChangeNotification"]
-      newEvaluationResult = {
-        complianceType = ["NON_COMPLIANT"]
-      }
-      configRuleName = local.immediate_alert_rules
+      messageType                 = ["ComplianceChangeNotification"]
+      newEvaluationResult         = { complianceType = ["NON_COMPLIANT"] }
+      configRuleName              = local.immediate_alert_rules
     }
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_cloudwatch_event_target" "config_compliance_immediate_sns" {
   rule      = aws_cloudwatch_event_rule.config_compliance_immediate.name
   target_id = "ConfigCriticalToSNS"
-  arn       = var.ops_sns_topic_arn
+  arn       = var.sns_topic_arn
 
   input_transformer {
     input_paths = {
-      account    = "$.account"
-      rule       = "$.detail.configRuleName"
-      resource   = "$.detail.resourceId"
+      account      = "$.account"
+      rule         = "$.detail.configRuleName"
+      resource     = "$.detail.resourceId"
       resourceType = "$.detail.resourceType"
-      time       = "$.time"
+      time         = "$.time"
     }
     input_template = "\"[CRITICAL] AWS Config NON_COMPLIANT: Rule=<rule> Resource=<resource> (<resourceType>) Account=<account> Time=<time>\""
   }
 }
 
+resource "aws_cloudwatch_log_group" "config_events" {
+  name              = "/aws/events/${var.project}-${var.environment}-config-compliance"
+  retention_in_days = 90
+
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
+}
+
 resource "aws_cloudwatch_event_rule" "config_compliance_review" {
-  name        = "${var.project_name}-config-noncompliant-review"
-  description = "Captures all other Config non-compliance events for console review"
+  name        = "${var.project}-${var.environment}-config-noncompliant-review"
+  description = "All other Config non-compliance events for console review"
 
   event_pattern = jsonencode({
     source      = ["aws.config"]
     detail-type = ["Config Rules Compliance Change"]
     detail = {
-      messageType = ["ComplianceChangeNotification"]
-      newEvaluationResult = {
-        complianceType = ["NON_COMPLIANT"]
-      }
+      messageType         = ["ComplianceChangeNotification"]
+      newEvaluationResult = { complianceType = ["NON_COMPLIANT"] }
     }
   })
 
-  tags = var.tags
-}
-
-resource "aws_cloudwatch_log_group" "config_events" {
-  name              = "/aws/events/${var.project_name}-config-compliance"
-  retention_in_days = 90
-
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_cloudwatch_event_target" "config_compliance_review_logs" {
@@ -78,18 +74,16 @@ resource "aws_cloudwatch_event_target" "config_compliance_review_logs" {
 }
 
 resource "aws_sns_topic_policy" "config_events" {
-  arn = var.ops_sns_topic_arn
+  arn = var.sns_topic_arn
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid    = "AllowEventBridgePublish"
-      Effect = "Allow"
-      Principal = {
-        Service = "events.amazonaws.com"
-      }
+      Sid      = "AllowEventBridgePublish"
+      Effect   = "Allow"
+      Principal = { Service = "events.amazonaws.com" }
       Action   = "sns:Publish"
-      Resource = var.ops_sns_topic_arn
+      Resource = var.sns_topic_arn
     }]
   })
 }

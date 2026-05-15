@@ -1,16 +1,20 @@
 resource "aws_ecs_cluster" "main" {
-  name = "${var.project_name}-cluster"
+  name = "${var.project}-${var.environment}-cluster"
 
   setting {
     name  = "containerInsights"
     value = "enabled"
   }
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_ecs_capacity_provider" "main" {
-  name = "${var.project_name}-capacity-provider"
+  name = "${var.project}-${var.environment}-cp"
 
   auto_scaling_group_provider {
     auto_scaling_group_arn         = aws_autoscaling_group.ecs.arn
@@ -24,7 +28,11 @@ resource "aws_ecs_capacity_provider" "main" {
     }
   }
 
-  tags = var.tags
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_ecs_cluster_capacity_providers" "main" {

@@ -1,7 +1,12 @@
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.project_name}-frontend-${var.account_id}"
+  bucket = var.s3_frontend_bucket_name
 
-  tags = var.tags
+  tags = {
+    Name        = var.s3_frontend_bucket_name
+    Project     = var.project
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
@@ -27,7 +32,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = var.s3_cmk_arn
+      kms_master_key_id = var.s3_cmk_key_arn
     }
     bucket_key_enabled = true
   }
@@ -43,15 +48,11 @@ resource "aws_s3_bucket_policy" "frontend" {
       {
         Sid    = "AllowCloudFrontOAC"
         Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
-        }
+        Principal = { Service = "cloudfront.amazonaws.com" }
         Action   = "s3:GetObject"
         Resource = "${aws_s3_bucket.frontend.arn}/*"
         Condition = {
-          StringEquals = {
-            "AWS:SourceArn" = aws_cloudfront_distribution.main.arn
-          }
+          StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.main.arn }
         }
       },
       {
@@ -60,11 +61,7 @@ resource "aws_s3_bucket_policy" "frontend" {
         Principal = "*"
         Action    = "s3:*"
         Resource  = [aws_s3_bucket.frontend.arn, "${aws_s3_bucket.frontend.arn}/*"]
-        Condition = {
-          Bool = {
-            "aws:SecureTransport" = "false"
-          }
-        }
+        Condition = { Bool = { "aws:SecureTransport" = "false" } }
       }
     ]
   })

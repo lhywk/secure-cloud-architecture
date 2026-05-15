@@ -21,7 +21,3 @@ output "ecs_service_name" {
 output "asg_name" {
   value = aws_autoscaling_group.ecs.name
 }
-
-output "execution_role_arn" {
-  value = aws_iam_role.ecs_execution.arn
-}

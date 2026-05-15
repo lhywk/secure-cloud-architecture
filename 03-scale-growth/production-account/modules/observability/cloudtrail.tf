@@ -1,12 +1,12 @@
 resource "aws_cloudwatch_log_group" "cloudtrail" {
-  name              = "/aws/cloudtrail/${var.project_name}"
-  retention_in_days = 90
+  name              = "/aws/cloudtrail/${var.project}-${var.environment}"
+  retention_in_days = var.cloudwatch_log_retention_days
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role" "cloudtrail" {
-  name = "${var.project_name}-cloudtrail-role"
+  name = "${var.project}-${var.environment}-cloudtrail-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -17,7 +17,7 @@ resource "aws_iam_role" "cloudtrail" {
     }]
   })
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
 
 resource "aws_iam_role_policy" "cloudtrail_logs" {
@@ -28,20 +28,14 @@ resource "aws_iam_role_policy" "cloudtrail_logs" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
-      Action = [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "logs:DescribeLogGroups",
-        "logs:DescribeLogStreams"
-      ]
+      Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
       Resource = "${aws_cloudwatch_log_group.cloudtrail.arn}:*"
     }]
   })
 }
 
 resource "aws_cloudtrail" "main" {
-  name                          = "${var.project_name}-trail"
+  name                          = "${var.project}-${var.environment}-trail"
   s3_bucket_name                = var.log_archive_bucket_name
   s3_key_prefix                 = "cloudtrail"
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.cloudtrail.arn}:*"
@@ -49,7 +43,7 @@ resource "aws_cloudtrail" "main" {
   enable_log_file_validation    = true
   include_global_service_events = true
   is_multi_region_trail         = true
-  kms_key_id                    = var.log_archive_kms_arn
+  kms_key_id                    = var.cloudtrail_kms_key_arn
 
   event_selector {
     read_write_type           = "WriteOnly"
@@ -61,5 +55,5 @@ resource "aws_cloudtrail" "main" {
     }
   }
 
-  tags = var.tags
+  tags = { Project = var.project, Environment = var.environment, ManagedBy = "terraform" }
 }
