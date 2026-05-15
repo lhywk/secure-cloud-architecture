@@ -21,7 +21,7 @@
 - SCP·IAM Identity Center·KMS CMK·GuardDuty·AWS Config로 엔터프라이즈 보안 레이어 적용
 - 임직원 5개 페르소나, MAU 100만 명 규모를 가정
 
-설계 의도와 위협 시나리오 등 자세한 내용은 저희의 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고해주세요.
+설계 의도와 위협 시나리오, 보안 설계 원칙 등 자세한 내용은 저희의 [GitHub Pages 문서](https://unitelivedispersedie.github.io/secure-cloud-architecture-docs/)를 참고해주세요.
 
 ---
 
@@ -73,49 +73,6 @@ Org Management Account
 
 > [!NOTE]
 > Staging·Development·Sandbox 계정은 별도 Terraform 루트로 관리하며 이 저장소의 범위에 포함되지 않습니다.
-
----
-
-## 보안 설계 원칙
-
-### SCP (Service Control Policy)
-deny-list 전략으로 4개 레벨에 적용합니다.
-
-| 정솵 | 적용 대상 | 주요 차단 항목 |
-|---|---|---|
-| `DenyRootUsage` | Root 전체 | 루트 계정 모든 API 호출 |
-| `DenyLeaveOrganization` | Root 전체 | Organizations 탈퇴 |
-| `DenyDisableSecurityServices` | Production OU | GuardDuty·CloudTrail·Config 비활성화 |
-| `DenyNonApprovedRegions` | Production OU | 서울(ap-northeast-2) 외 리전 |
-
-### IAM Identity Center (SSO)
-5개 페르소나별 Permission Set으로 최소 권한을 구현합니다.
-
-| 페르소나 | Permission Set | 접근 범위 |
-|---|---|---|
-| Admin | `AdministratorAccess` | Management 계정 한정 |
-| Developer | 커스텀 (ECS·ECR·CloudWatch) | Production·Dev |
-| Security | `SecurityAudit` | 전 계정 읽기 전용 |
-| Auditor | `ReadOnlyAccess` | 전 계정 읽기 전용 |
-| ReadOnly | `ViewOnlyAccess` | Production |
-
-### KMS CMK 구성
-
-| 키 | 계정 | 암호화 대상 |
-|---|---|---|
-| `rds-cmk` | Production | RDS, ElastiCache |
-| `s3-cmk` | Production | 프론트엔드 S3, 앱 S3 |
-| `secrets-cmk` | Production | Secrets Manager |
-| `ebs-cmk` | Production | ECS EC2 EBS 볼륨 |
-| `s3-log-cmk` | Log Archive | CloudTrail·Config 로그 S3 |
-
-### 주요 보안 서비스
-
-- **GuardDuty** — severity ≥ 7 즉시 SNS, CryptoCurrency·CredentialExfiltration 즉시 알림
-- **AWS Config** — 30개 관리형 룰, 위반 시 EventBridge → SNS
-- **IAM Access Analyzer** — ORGANIZATION 스코프, 외부 공개 리소스 탐지
-- **WAFv2** — CloudFront 스코프, 5개 AWS 관리형 룰 그룹 + `/login` 레이트 리및(20회/5분)
-- **VPC Endpoints** — S3 Gateway, ECR, SSM, Secrets Manager 등 8개 (인터넷 미경유)
 
 ---
 
