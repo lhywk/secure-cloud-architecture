@@ -24,6 +24,6 @@ output "rds_endpoint" {
 }
 
 output "elasticache_endpoint" {
-  value     = module.database.elasticache_primary_endpoint
+  value     = module.database.redis_primary_endpoint
   sensitive = true
 }
