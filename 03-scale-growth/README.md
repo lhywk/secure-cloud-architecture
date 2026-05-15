@@ -52,28 +52,27 @@ AWS Organizations 아래 7개 계정을 3개 OU로 구성합니다.
 각 Terraform 루트 디렉터리가 어느 계정을 담당하는지 확인하세요.
 
 ```text
-Root
+Org Management Account
 ├── Management OU
-│   └── management-account      ← Organizations, IAM Identity Center, SCPs
+│   ├── log-archive-account     ← CloudTrail/Config 로그 S3, Object Lock
+│   └── security-account        ← GuardDuty 위임 관리자, IAM Access Analyzer
 ├── Production OU
 │   ├── production-account      ← VPC, ECS, RDS, ElastiCache, CloudFront, WAF
-│   ├── security-account        ← GuardDuty 위임 관리자, IAM Access Analyzer
-│   └── log-archive-account     ← CloudTrail/Config 로그 S3, Object Lock
+│   └── staging-account
 └── Dev OU
-    ├── dev-account
-    ├── staging-account
+    ├── development-account
     └── sandbox-account
 ```
 
 | Terraform 루트 | 담당 계정 | 주요 리소스 |
 |---|---|---|
-| `management-account/` | Management | Organizations, SCPs, IAM Identity Center, Permission Sets |
+| `management-account/` | Org Management | Organizations, SCPs, IAM Identity Center, Permission Sets |
 | `log-archive-account/` | Log Archive | S3 Object Lock, KMS s3-log-cmk |
 | `security-account/` | Security | GuardDuty 위임 관리자, IAM Access Analyzer (ORGANIZATION) |
 | `production-account/` | Production | 전체 애플리케이션 스택 |
 
 > [!NOTE]
-> Dev OU 계정은 별도 Terraform 루트로 관리하며 이 저장소의 범위에 포함되지 않습니다.
+> Staging·Development·Sandbox 계정은 별도 Terraform 루트로 관리하며 이 저장소의 범위에 포함되지 않습니다.
 
 ---
 
@@ -187,7 +186,7 @@ deny-list 전략으로 4개 레벨에 적용합니다.
    - AWS 콘솔 → Route 53 → Hosted zones → Create hosted zone
    - 생성 후 NS 레코드를 도메인 등록 업체에 등록
 
-4. **Log Archive 계정 S3 버킷 수동 생성**
+4. **Log Archive 계정 S3 버킷 수동 생성** (닭-달걸 문제 회피)
    - CloudTrail이 버킷에 로그를 쓰려면 버킷이 먼저 존재해야 하고
    - 버킷 정솵에 CloudTrail ARN이 필요하므로 `log-archive-account`를 먼저 apply
 
