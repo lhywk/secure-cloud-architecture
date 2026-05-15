@@ -1,7 +1,7 @@
 # 03 Scale — Growth
 
 > [!IMPORTANT]
-> 이 아키텍첸는 MAU 100만 명 규모의 서비스와 5개 페르소나(관리자·개발자·보안·감사·읽기전용)가 운영하는 환경을 기반으로 설계된 AWS 멀티어카운트 클라우드 아키텍첸입니다.
+> 이 아키텍처는 MAU 100만 명 규모의 서비스와 5개 페르소나(관리자·개발자·보안·감사·읽기전용)가 운영하는 환경을 기반으로 설계된 AWS 멀티어카운트 클라우드 아키텍처입니다.
 
 ![Stage](https://img.shields.io/badge/Stage-03%20Growth-0A7E3B?style=flat-square)
 ![Scope](https://img.shields.io/badge/Scope-Multi%20Account-1F6FEB?style=flat-square)
@@ -12,7 +12,7 @@
 
 ## 소개
 
-<img src="../doc/images/03-scale-growth.png" align="center" alt="중규모 아키텍첸">
+<img src="../doc/images/03-scale-growth.png" align="center" alt="중규모 아키텍처">
 
 <br>
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 아키텍첸 흐름
+## 아키텍처 흐름
 
 ```text
 Internet
@@ -49,7 +49,7 @@ GitHub Actions → OIDC → ECR Push + ECS Deploy (장기 크레덴셜 없음)
 ## 계정 구조
 
 AWS Organizations 아래 7개 계정을 3개 OU로 구성합니다.  
-각 Terraform 루트 디렉토리가 어느 계정을 담당하는지 확인하세요.
+각 Terraform 루트 디렉터리가 어느 계정을 담당하는지 확인하세요.
 
 ```text
 Root
@@ -115,7 +115,7 @@ deny-list 전략으로 4개 레벨에 적용합니다.
 - **GuardDuty** — severity ≥ 7 즉시 SNS, CryptoCurrency·CredentialExfiltration 즉시 알림
 - **AWS Config** — 30개 관리형 룰, 위반 시 EventBridge → SNS
 - **IAM Access Analyzer** — ORGANIZATION 스코프, 외부 공개 리소스 탐지
-- **WAFv2** — CloudFront 스코프, 5개 AWS 관리형 룰 그룹 + `/login` 레이트 리믳(20회/5분)
+- **WAFv2** — CloudFront 스코프, 5개 AWS 관리형 룰 그룹 + `/login` 레이트 리및(20회/5분)
 - **VPC Endpoints** — S3 Gateway, ECR, SSM, Secrets Manager 등 8개 (인터넷 미경유)
 
 ---
@@ -189,7 +189,7 @@ deny-list 전략으로 4개 레벨에 적용합니다.
 
 4. **Log Archive 계정 S3 버킷 수동 생성** (닭-달걸 문제 회피)
    - CloudTrail이 버킷에 로그를 쓰려면 버킷이 먼저 존재해야 하고
-   - 버킷 정첵에 CloudTrail ARN이 필요하므로 `log-archive-account`를 먼저 apply
+   - 버킷 정솵에 CloudTrail ARN이 필요하므로 `log-archive-account`를 먼저 apply
 
 ---
 
@@ -221,7 +221,7 @@ terraform -chdir=03-scale-growth/production-account apply tfplan
 ## tfvars 작성 가이드
 
 `production-account/terraform.tfvars`를 새로 만들고 아래 항목을 채워주세요.  
-(다른 계정 루트의 tfvars는 해당 디렉토리 내 `terraform.tfvars.example`을 참고하세요.)
+(다른 계정 루트의 tfvars는 해당 디렉터리 내 `terraform.tfvars.example`을 참고하세요.)
 
 ### 공통 식별값
 
@@ -372,7 +372,7 @@ cloudwatch_log_retention_days = 90
 - [ ] RDS 퍼블릭 접근 불가·Multi-AZ·삭제 보호 상태 확인
 - [ ] ElastiCache TLS 및 AUTH 토큰 적용 확인
 - [ ] VPC Endpoint 8개 정상 생성 확인 (인터넷 게이트웨이 미경유)
-- [ ] IAM Identity Center 페르소나별 로김 및 권한 테스트
+- [ ] IAM Identity Center 페르소나별 로그인 및 권한 테스트
 - [ ] ECR에 컨테이너 이미지 푸시 후 ECS 서비스 정상 기동 확인
 - [ ] ECS Task 루트리스(user 1000:1000) 실행 확인
 
